@@ -1,6 +1,6 @@
 ---
 name: issue-verification
-description: Independently verify a committed issue candidate and provide reproducible acceptance evidence for delivery to include in its PR.
+description: Independently verify a committed issue candidate and provide private reproducible acceptance evidence and a concise public lint/test summary.
 ---
 
 Read `AGENTS.md`, `docs/AGENT-WORKFLOW.md`, the issue, acceptance mapping, and final candidate diff. Do not edit production code/tests, commit, push, or create PRs. You may run checks and produce evidence artifacts.
@@ -11,3 +11,5 @@ Read `AGENTS.md`, `docs/AGENT-WORKFLOW.md`, the issue, acceptance mapping, and f
 - Detect false positive tests: assertions must distinguish correct from incorrect behavior. Where valuable, use an isolated temporary copy for a bounded negative control; restore it or discard the copy and never contaminate the candidate. Report limitations honestly if such a check is not run.
 - Separate engine correctness, runtime integration, baseline calibration, independent validation, performance, and external acceptance. Do not claim simulation fidelity from unit tests or scaffolding.
 - Return the evidence report to the orchestrator and `delivery`. Required gaps block ready PR delivery. On a changed SHA, rerun affected checks and final required gates; explain any carried-forward evidence with its source SHA and why the change cannot affect it. Do not edit committed proof afterward to imply it verified its own future commit hash.
+
+The full evidence report is a private handoff to orchestrator/delivery. Provide a separate concise publication excerpt containing only relevant lint/test commands and results. Do not include local paths, host details, signing/identity checks, internal gate reports, commit bookkeeping, or artifact hashes in public PR validation. All internal verification requirements remain mandatory.
