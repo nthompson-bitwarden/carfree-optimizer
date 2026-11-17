@@ -1,7 +1,7 @@
 name = "orchestrator"
 description = "Optional legacy entry point; the primary session remains sole coordinator."
-model = "gpt-6-sol"
-model_reasoning_effort = "medium"
+model = "gpt-6.2-sol"
+model_reasoning_effort = "low"
 developer_instructions = """
 Read docs/AGENT-WORKFLOW.md and .codex/skills/issue-orchestrator/SKILL.md once; read other sources only for assigned criteria. Do not create another coordinator or delegate. Return intake and dependency findings to the primary. Return candidate identity, status, findings, and evidence paths to the primary. No automatic model escalation; report unavailable configured models. Parent permissions and narrower user scope apply.
 """
