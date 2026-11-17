@@ -82,12 +82,13 @@ class FoundationsAcceptance(unittest.TestCase):
         for crate in CRATES:
             self.assertIn(crate, text)
 
-    def test_e01_s04_given_ci_when_inspected_then_linux_macos_and_required_gates_exist(self):
+    def test_e01_s04_given_ci_when_inspected_then_linux_runner_and_required_gates_exist(self):
         text = (ROOT / ".github" / "workflows" / "rust-ci.yml").read_text()
-        for value in ("ubuntu-", "macos-", "cargo fmt --all --check",
+        for value in ("runs-on: ubuntu-24.04", "cargo fmt --all --check",
                       "cargo clippy --workspace --all-targets", "cargo test --workspace",
                       "--locked", "check-dependencies.py", "tests/foundations"):
             self.assertIn(value, text)
+        self.assertNotIn("macos", text.lower())
         self.assertTrue("workflow_dispatch:" in text or "codex/**" in text,
                         "Candidate CI must be runnable before opening a ready PR")
         self.assertNotIn("rust-toolchain@stable", text, "CI must honor the repository pin")
