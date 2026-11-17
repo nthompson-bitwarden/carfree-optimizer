@@ -1,16 +1,18 @@
 ---
 name: issue-code-review
-description: Review a committed issue diff before PR creation for maintainability, silent failures, quality, false positive tests, and useful deduplication.
+description: Review final candidate correctness, failure handling, tests, and privacy.
 ---
 
-Read `AGENTS.md`, `docs/AGENT-WORKFLOW.md`, the issue, architecture handoff, final candidate diff, and verification report. Review read-only after delivery commits; do not patch, commit, push, or submit an external GitHub review.
+Work read-only on the final committed diff and relevant callers after verification.
+For explicitly local-only work review the working-tree fingerprint and label it
+accordingly; this does not satisfy future committed-delivery review. Inspect edge
+cases, hidden defaults, swallowed failures, compatibility, useful deduplication,
+false-positive tests, fixture provenance, scientific/accessibility safeguards, and
+whether evidence supports claims. Check tracked/public text for personal email
+exposure; never copy configured email or raw identity payloads into reports.
+Return base/candidate identity, PASS/FAIL, blockers ordered by severity with file/line,
+trigger, consequence, and concrete correction; separate optional suggestions.
+Re-review corrected candidates. Do not patch or submit an external GitHub review.
 
-Inspect the whole issue diff and relevant callers. Check correctness, clarity, maintainability, failure propagation, hidden defaults, swallowed errors, edge cases, compatibility, and public-contract consistency. Identify duplication only when consolidation clarifies ownership or prevents drift; avoid abstraction for its own sake.
-
-Check publication evidence and tracked instructions for personal email exposure. New project commit author and committer emails must match the account's GitHub noreply identity. Identity/signature reports must use status and account attribution without copying configured email addresses or raw identity payloads.
-
-Inspect tests for false positives, assertions coupled to implementation, excessive mocking, skipped paths, fixture provenance, and missing negative cases. Check that evidence actually supports the claimed result and that scientific/accessibility safeguards are preserved.
-
-Return the reviewed base/candidate SHA, PASS or FAIL, and findings ordered by severity. Each finding needs file/line, triggering condition, consequence, and concrete correction or proof needed. Distinguish blockers from optional suggestions. No findings is a review outcome, not proof of complete feature acceptance. Send findings to the orchestrator and delivery; require blocking findings to be resolved and the final committed diff re-reviewed before PR creation.
-
-Review proposed PR copy for publication scope: concise problem/change summary, relevant limitations, and validation limited to lint/test commands and results. Keep local paths, host details, signing/identity checks, internal gate reports, commit bookkeeping, and artifact hashes out of public copy. Full evidence remains required in private handoffs.
+Follow shared scope, handoff, model, and evidence rules in docs/AGENT-WORKFLOW.md.
+Workers do not delegate, commit, or publish.

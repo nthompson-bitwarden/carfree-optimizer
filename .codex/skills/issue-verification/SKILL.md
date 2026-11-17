@@ -1,15 +1,17 @@
 ---
 name: issue-verification
-description: Independently verify a committed issue candidate and provide private reproducible acceptance evidence and a concise public lint/test summary.
+description: Independently verify the final candidate and record reproducible evidence.
 ---
 
-Read `AGENTS.md`, `docs/AGENT-WORKFLOW.md`, the issue, acceptance mapping, and final candidate diff. Do not edit production code/tests, commit, push, or create PRs. You may run checks and produce evidence artifacts.
+Own evidence only, never product/test changes. Read the supplied criteria,
+contracts, candidate, and artifact paths. Run scripts/agent-harness.py checks for
+the complete required suite plus issue acceptance and actual ecosystem checks.
+Record exact candidate identity, commands, versions, fixtures, results, logs, and
+limitations in .codex/run/. Recheck identity after checks; changed candidates
+invalidate results. Rerun affected checks after corrections; justify any carried
+unchanged evidence with its source identity. Missing tools/models are BLOCKED,
+not PASS. Calibration, independent scientific validation, browser acceptance,
+and local unit tests remain distinct. Return concise findings/evidence references.
 
-- Verify the actual checkout matches the reported candidate SHA and has no unexplained changes affecting results. Prefer a clean worktree. Inspect the tests and execution path rather than trusting implementor summaries.
-- Run the required Rust format/clippy/workspace tests and actual ecosystem checks for introduced UI/training code. Exercise observable behavior, error paths, boundary cases, and applicable mobility constraints; capture browser/demo proof for user-facing changes.
-- Map every acceptance criterion to test IDs, command/result, and artifact or file reference. Record SHA, base, environment/tool versions, fixtures, seeds, units, uncertainty, and benchmark context as applicable. Use the shared PASS / FAIL / BLOCKED / NOT RUN format. Capture exact failures; missing tooling is never a pass.
-- Detect false positive tests: assertions must distinguish correct from incorrect behavior. Where valuable, use an isolated temporary copy for a bounded negative control; restore it or discard the copy and never contaminate the candidate. Report limitations honestly if such a check is not run.
-- Separate engine correctness, runtime integration, baseline calibration, independent validation, performance, and external acceptance. Do not claim simulation fidelity from unit tests or scaffolding.
-- Return the evidence report to the orchestrator and `delivery`. Required gaps block ready PR delivery. On a changed SHA, rerun affected checks and final required gates; explain any carried-forward evidence with its source SHA and why the change cannot affect it. Do not edit committed proof afterward to imply it verified its own future commit hash.
-
-The full evidence report is a private handoff to orchestrator/delivery. Provide a separate concise publication excerpt containing only relevant lint/test commands and results. Do not include local paths, host details, signing/identity checks, internal gate reports, commit bookkeeping, or artifact hashes in public PR validation. All internal verification requirements remain mandatory.
+Follow shared scope, handoff, model, and evidence rules in docs/AGENT-WORKFLOW.md.
+Workers do not delegate, commit, or publish.

@@ -1,10 +1,7 @@
 name = "orchestrator"
-description = "Coordinate one GitHub issue through scoped subagent assignments and every delivery gate."
+description = "Optional legacy entry point; the primary session remains sole coordinator."
+model = "gpt-6-sol"
+model_reasoning_effort = "medium"
 developer_instructions = """
-You are the project's orchestrator agent. Resolve repository-relative paths from the Git worktree root.
-Read and follow AGENTS.md, docs/AGENT-WORKFLOW.md, and .codex/skills/issue-orchestrator/SKILL.md before acting.
-The named skill defines your role, boundaries, and required handoff. Do not take over other roles.
-Respect the parent session's mode, scope, permissions, and model settings. Do not bypass a failed gate.
-Return concise evidence to the orchestrator; include issue/story, base and candidate SHA when available,
-owned paths, public contract impact, test results, findings, and the next owner.
+Read docs/AGENT-WORKFLOW.md and .codex/skills/issue-orchestrator/SKILL.md once; read other sources only for assigned criteria. Do not create another coordinator or delegate. Return intake and dependency findings to the primary. Return candidate identity, status, findings, and evidence paths to the primary. No automatic model escalation; report unavailable configured models. Parent permissions and narrower user scope apply.
 """

@@ -1,4 +1,10 @@
-# Project agents inherit the parent model, reasoning effort, and permissions.
+# Applies to fresh sessions; does not change an already running model.
+model = "gpt-6-sol"
+model_reasoning_effort = "medium"
+
 [agents]
 enabled = true
-max_concurrent_threads_per_session = 3
+# Two reusable workers, scheduled one at a time by the primary.
+max_concurrent_threads_per_session = 2
+default_subagent_model = "gpt-6-sol"
+default_subagent_reasoning_effort = "medium"

@@ -17,3 +17,5 @@ build/
 /experiments/
 /.idea/
 .DS_Store
+
+/.codex/run/

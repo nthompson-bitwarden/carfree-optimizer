@@ -1,150 +1,132 @@
-# Issue delivery workflow
+# Issue workflow
 
-This workflow supports **E01-S03** (epic dependencies: none). Its acceptance criterion is that tasks identify owned files, public APIs, tests, and prohibited cross-module changes. `AGENTS.md` and `ARCHITECTURE.md` remain the domain and module contract sources. The agents add issue-level ownership and evidence handoffs; they do not implement the simulator or establish scientific fidelity.
+E01-S03 (dependencies: none) requires handoffs naming owned files, public APIs,
+tests, and prohibited cross-module changes. `AGENTS.md` supplies scientific rules;
+read `ARCHITECTURE.md` and `MODULE-CONTRACTS.md` only for affected boundaries.
 
-## Configuration and use
+## Ownership and sequence
 
-`.codex/config.toml` enables agents and caps concurrent subagents at three, excluding the primary session. Ten standalone profiles under `.codex/agents` inherit the parent model, reasoning effort, permissions, provider, and integrations. Skills live under `.codex/skills`; relative symlinks in `.agents/skills` expose them to repository skill discovery, including sessions launched in subdirectories. No global configuration is changed.
+The primary session is the sole coordinator and default implementer, test author,
+documentor, and delivery owner. `$issue-orchestrator` is its workflow entrypoint;
+do not spawn an orchestrator. Default to two reused independent workers, scheduled
+one at a time: `architect` for design, conformance, and code review; `verifier` for
+final checks. Only the primary delegates. Additional language specialists require
+a concrete cross-module need and explicit nonoverlapping ownership. Workers never
+commit or publish. Preserve unrelated changes and serialize shared-type edits.
 
-Open a fresh Codex session in this trusted project after installing the configuration. Check `/skills` for `issue-orchestrator` and the other role skills. Ask for the orchestrator explicitly, for example:
+1. Primary records issue/story criteria, dependency status, scope, and owned files.
+   For issue delivery, prepare from freshly fetched `origin/main` unless a base or
+   branch was specified. For local-only work, preserve the current branch.
+2. Architect independently reviews design, contracts, failure behavior, acceptance
+   mapping, and prohibited edits before implementation.
+3. Primary establishes deterministic Given/When/Then tests, then implements with
+   focused checks. Missing-symbol compilation is BLOCKED behavioral evidence;
+   rerun when the interface exists. Config/docs work uses parser/discovery and
+   scenario checks instead of artificial red production tests. Never weaken tests.
+4. Reuse architect for conformance. Primary records documentation disposition,
+   prepares the candidate, and inspects documentation impact after any commit.
+   Commit documentation changes before final verification/review when authorized.
+5. Verifier independently runs the complete required suite on the final candidate.
+   Reuse architect for final committed-code review, including verification evidence,
+   hidden failures and misleading tests. Local-only requests use a working-tree
+   fingerprint and working-tree review; this does not satisfy committed delivery.
+6. Primary corrects findings, reassesses docs/design as relevant, and renews affected
+   verification and review. FAIL, BLOCKED, NOT RUN required gates or unresolved
+   blocking findings prevent a ready PR. After two unsuccessful correction cycles,
+   checkpoint unresolved findings; do not automatically expand the team or model.
 
-```text
-Use $issue-orchestrator and the orchestrator agent to deliver GitHub issue <issue URL>.
-Use origin/main as the base and carry it through push and PR creation.
-```
+For Git mutations and publication, read [delivery procedure](AGENT-DELIVERY.md).
+A request to deliver an issue authorizes scoped commits, push, and PR; narrower
+scope wins. No merge, release, repository creation, or unrelated message is implied.
+Connected tools are preferred; Git/gh cover unsupported operations. Inspect remote
+state before retrying uncertain publication. Keep credentials out of the repo.
+Public PRs contain a concise change summary, material limitations, and relevant
+lint/test commands and results. Keep identity, signing, environment, and internal
+agent gate evidence in private handoffs. Never publish configured email addresses.
 
-Overrides must be explicit:
+## Context and models
 
-```text
-Use $issue-orchestrator to deliver <issue URL>, branching from origin/release-next.
-```
+Fresh sessions use `gpt-6-sol` / `medium` for the primary and judgment-heavy
+profiles; mechanical `verifier` uses `gpt-6-luna` / `low`. Every optional profile
+sets model and effort explicitly. No automatic escalation: an unavailable model
+is an explicit limitation and blocks its dependent gate until resolved within user
+scope. Configuration is not evidence of the active conversation's runtime model.
 
-For a narrower task:
+Spawn with `fork_turns="none"`, supplying only issue criteria, worktree, owned
+scope, contracts, candidate, and evidence paths. Reuse the same worker threads for
+corrections. Wait up to 60 seconds; send substantive corrections, never status-only
+requests. Keep user updates brief and do not restate unchanged gates.
 
-```text
-Use the code_reviewer agent and $issue-code-review to review <base SHA>..<candidate SHA>.
-Return findings locally.
-```
+Store compact task state and detailed logs under ignored `.codex/run/`. Return
+status, findings, candidate identity, and evidence references instead of full chat
+reports. Read shared guidance once per worker; do not reload the whole backlog or
+all role guides. Optional profiles retain their named role skills; the primary
+uses those skills directly when applicable.
 
-For local-only work, say so in the request; it overrides the default issue-delivery push/PR steps. A request to deliver an issue through this workflow authorizes its scoped branch, commits, push, and PR. It does not authorize merging, creating a repository, releases, or unrelated messages. GitHub access uses connected tools where sufficient, with Git/gh for unsupported operations. Never persist credentials in the repository.
-
-These files guide agents; they are not enforcement hooks or independent read-only sandboxes. Parent and managed permissions still apply. If runtime delegation/discovery is unavailable, report that limitation rather than pretending specialist agents ran.
-
-The configuration follows the official [subagent schema](https://learn.chatgpt.com/docs/agent-configuration/subagents?surface=app) and [skill discovery rules](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
-
-## Roles and order
-
-| Agent | Skill | Ownership and output |
-| --- | --- | --- |
-| `orchestrator` | `issue-orchestrator` | Issue intake, dependencies, bounded assignments, gate results, corrective iterations |
-| `delivery` | `issue-delivery` | Branch/worktree, scoped staging, commits, push, PR and evidence assembly |
-| `architect` | `issue-architecture` | Read-only preimplementation design and postimplementation conformance |
-| `test_author` | `issue-bdd-tests` | Assigned tests/fixtures, acceptance mapping, meaningful red evidence |
-| `rust_implementor` | `issue-rust-implementation` | Assigned Rust production files and local validation |
-| `python_implementor` | `issue-python-implementation` | Assigned Python training/validation and approved integration files |
-| `web_implementor` | `issue-web-implementation` | Assigned TypeScript/Svelte files and approved API integration |
-| `verifier` | `issue-verification` | Independent checks and evidence artifacts; no product/test edits |
-| `code_reviewer` | `issue-code-review` | Read-only review of committed diff, findings and disposition |
-| `technical_documentor` | `issue-technical-documentation` | Assigned documentation, commit impact, Mermaid and ADR updates |
-
-Only the orchestrator delegates workflow stages. Workers return to it rather than spawning another orchestrator. Assign multiple implementors only for actual cross-language work; serialize shared types and overlapping files. Send verification and review results to delivery as well as the orchestrator.
-
-```mermaid
-flowchart TD
-    A[Issue intake and dependencies] --> B[Delivery prepares branch from origin/main]
-    B --> C[Architect approves design and ownership]
-    C --> D[Test author establishes acceptance scenarios]
-    D --> E[Language specialist implements]
-    E --> F[Architect checks conformance]
-    F --> G[Delivery commits candidate]
-    G --> H[Documentor inspects commit and updates docs]
-    H --> I[Delivery commits documentation changes if needed]
-    I --> J[Verifier checks final candidate]
-    J --> K[Reviewer checks committed diff and verification report]
-    J --> L{All required gates pass?}
-    K --> L
-    L -->|No| M[Orchestrator routes findings to owners]
-    M --> E
-    L -->|Yes| N[Delivery pushes issue branch]
-    N --> O[Delivery creates or updates issue PR with lint/test summary]
-```
-
-Delivery defaults to `codex/issue-<number>-<slug>` from a freshly fetched `origin/main`. An explicit base/branch overrides that default. Unrelated index and worktree changes are preserved; use an isolated worktree if needed. Missing remote/base, issue ambiguity, conflicting branch history, or authentication failure blocks dependent delivery steps with a specific explanation. Do not silently substitute a local base or run the repository publishing script.
-
-Explicit-path staging does not remove preexisting unrelated index entries. Inspect the entire index and prefer an isolated worktree before committing. For an established continuation, a scoped `git commit --only -- <owned paths>` is allowed only when those paths contain no unrelated edits; verify the unrelated index entries remain intact afterward.
-
-New project commits use the repository-local Git identity associated with `nthompson-bitwarden` as both author and committer, with the account's verified GitHub noreply address for both email fields, with no coding-agent attribution in metadata or messages. Delivery checks effective identities, signs every commit (including merges and amendments), verifies signatures locally, and checks GitHub's commit API after push for `verified: true`, `reason: valid`, and the expected account attribution. Local signing alone is insufficient. Preserve legitimate third-party authorship. Missing signing capability or failed GitHub verification blocks completed delivery; published-history repair requires explicit user authorization and an exact-SHA lease.
-
-Keep the configured email private. Obtain it from repository-local Git configuration, never from
-tracked instructions. Do not include it or raw identity payloads in PRs, comments, commit
-messages, reports, documentation, or tracked files. Private identity evidence reports account attribution
-and verification status only; public PR validation contains lint/test results only. Before publication, check the complete text for personal email
-addresses. Git commit metadata itself exposes the configured email; changing identity or
-rewriting published history requires explicit authorization.
-
-## Handoff and evidence contract
-
-Use this private internal handoff for every assignment and result. It is not a PR template; do not copy it into public descriptions. `pending` or `not applicable` is explicit when a candidate or public change does not yet exist.
+## Handoff and evidence
 
 ```text
-Issue URL / number and repository:
-Story ID, acceptance criteria, dependencies and their status:
-Base ref and SHA / candidate SHA:
+Issue/story, acceptance criteria, dependencies and status:
+Worktree, base ref/SHA, candidate SHA or local fingerprint:
 Owned crates and files:
-Public APIs / stored schemas / compatibility impact:
+Public APIs / stored schemas / compatibility:
 Prohibited cross-module changes:
 Tests / fixtures / seeds / expected behavior:
-Findings / decisions / limitations:
-Status and next owner:
+Findings / decisions / limitations, evidence paths:
+Status (PASS / FAIL / BLOCKED / NOT RUN) and next owner:
 ```
 
-The test author uses Given/When/Then names or comments in the existing ecosystem framework. Do not add a BDD framework for syntax alone. A compilation failure is not a demonstrated behavioral failure; record it separately and rerun when interfaces exist. For documentation/config-only work, parser/discovery checks and scenario exercises can replace artificial red tests, with an explicit rationale.
+Evidence records commands, results, candidate/tree identity, logs, relevant tool
+and fixture versions, units, provenance, uncertainty, and benchmarks. PASS means
+that check ran and met expectations; FAIL means it contradicted them; BLOCKED
+means a missing prerequisite; NOT RUN has no execution evidence. Never silently
+reuse evidence across candidates. After relevant changes rerun checks; any carried
+unchanged evidence needs exact source identity and verifier justification.
 
-Verifier evidence is tied to a committed candidate and follows this format:
+The independent verifier runs `cargo fmt --all --check`,
+`cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`,
+plus foundation and actual ecosystem checks. UI features require reviewable demos;
+simulation-critical edits require complexity/benchmark evidence. Calibration,
+independent scientific validation, browser acceptance, and unit tests prove
+separate things. Do not claim fidelity from a successful build.
 
-| Criterion or check | Test / command / scenario | Status | Result and evidence reference |
-| --- | --- | --- | --- |
-| Exact issue criterion or required check | Reproducible invocation and test IDs | PASS, FAIL, BLOCKED, or NOT RUN | Observed result, output/artifact reference, limitation |
+## Harness commands and discovery
 
-Record privately the base/candidate SHAs, tool/environment versions, and relevant fixture/source versions, seeds, units, provenance, uncertainty, and benchmark hardware. A PASS means the stated check ran successfully. FAIL means it ran and contradicted expectations. BLOCKED identifies a prerequisite failure. NOT RUN means there is no execution evidence. Required gaps block a ready PR; optional suggestions and checks must be labeled as such, with rationale.
+Python 3.11+, standard library only, from any working directory:
 
-Always run `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`. Add actual ecosystem-specific checks once UI/training code is introduced. User-facing features need a human-reviewable demonstration. Simulation-critical changes need complexity and representative benchmark evidence. Baseline calibration, independent scientific validation, and external acceptance remain distinct gates whenever the issue requires them.
+```sh
+python3 scripts/agent-harness.py validate
+python3 scripts/agent-harness.py checks
+python3 scripts/agent-harness.py checks --verify .codex/run/checks.json
+python3 scripts/agent-harness.py usage /path/to/session.jsonl
+```
 
-Documentation changes are committed before final verification/review. A later fix requires documentation-impact reassessment, architectural reassessment when relevant, renewed affected verification, final required checks, and review of the final committed diff. Carry forward an unchanged check only with verifier justification and its source SHA. Never label stale evidence as a fresh run. Keep detailed evidence in private handoffs or private artifacts; it need not be committed. Publish only relevant lint/test commands and results in PR validation.
+Default evidence directory: `.codex/run/`; `checks --output` selects an ignored
+subdirectory there. `checks --command '...'` replaces the default suite for a
+focused run and is labeled custom, never complete-suite acceptance. The required suite uses `rustup which cargo --toolchain <pin>` to locate the
+installed toolchain and records effective compiler versions. Missing pins block
+the suite rather than falling back to another compiler. Nonzero exit,
+missing tools, timeout, or a candidate changed during checks prevents PASS. Logs
+are private; console failure excerpts are bounded. Candidate identity covers HEAD,
+index, tracked worktree content/modes, and nonignored untracked content/symlinks.
+Ignored local inputs are outside that identity; relevant external fixtures and
+environment must be recorded separately. Run no edits while final checks execute.
 
-## PR and failure handling
+Usage accepts Codex JSONL session_meta, token_count snapshots, and response records
+with usage. It deduplicates overlapping sessions and response IDs; cumulative
+snapshots take precedence over responses from the same session. Conflicts,
+resets, unattributed records, and unknown telemetry are flagged rather than added
+as trustworthy totals. Cached input is part of input; reasoning is part of output.
+No daily-limit percentages, costs, or achieved savings can be inferred. Compare
+like-for-like measured runs before claiming savings.
 
-The ready PR includes a concise problem/change summary, `Closes #<number>` for completed scope,
-relevant compatibility notes or limitations, and a short validation section containing only
-lint/test commands and results. Scale this to the change; do not paste the internal evidence table.
+`validate` checks TOML, model policy, skill links/frontmatter, discovery symlinks,
+and safeguards. Start a fresh client to check configuration and skill discovery
+without launching an issue team; record configured versus observed models
+separately. Static parsing does not prove live model availability or GitHub delivery.
+Configuration fields follow the [official schema](https://learn.chatgpt.com/docs/agent-configuration/subagents?surface=app).
 
-Keep local paths, host/environment details, author/signing/identity checks, internal agent and
-architecture/documentation/review reports, base/candidate SHA bookkeeping, artifact hashes,
-and exhaustive local control scenarios out of public PR descriptions. Required internal gates
-still run and retain their full evidence privately. Delivery checks the complete proposed PR
-copy for personal information and publication scope before posting or updating it.
-
-Delivery checks for an existing PR on the same repository/head branch before creating one. Push normally to the issue branch; never force-push or merge by default. If a network request has an uncertain result, inspect remote state before retrying. If push succeeds but PR creation fails, report the pushed branch/SHA and PR blocker. Never describe partial delivery as complete.
-
-## Validation scenarios for E01-S03
-
-Use read-only tabletop exercises or isolated fixtures; do not create a live PR solely to test configuration.
-
-| Given / When | Expected outcome |
-| --- | --- |
-| A new issue with a reachable origin/main | Delivery records fetched base SHA and creates the issue branch before edits |
-| An explicit alternative base | Delivery uses and records that base |
-| Unrelated staged or untracked changes overlap assigned paths | Preserve them and isolate issue work |
-| A required test fails or tooling is missing | FAIL or BLOCKED evidence; no ready PR |
-| A reviewer finds a swallowed error or self-asserting test | Route to implementor/test author; commit fixes and renew verification/review |
-| A documentor updates an API guide after candidate commit | Commit docs before final SHA verification/review |
-| An existing issue PR or uncertain PR-create response | Inspect and update the existing PR; avoid duplicate creation |
-| No origin/main or issue identity | Report the precise blocker without inventing a base or issue |
-| An explicitly authorized unborn-repository setup | Local initial commit is allowed; future issue delivery still requires origin/main |
-| A machine-derived email, agent identity, or agent co-author trailer | Correct identity/message before committing; use the repository-local Git identity associated with `nthompson-bitwarden` for new project commits |
-| Signing fails or the configured key is unavailable | Block the commit; never disable signing or substitute an agent key |
-| A locally valid signature has GitHub reason `no_user` or `unknown_key` | Block completed delivery; fix email/key association and obtain authorization before rewriting published history |
-
-Configuration validation must check TOML parsing, unique agent names, required fields, skill frontmatter, all role/skill links, and symlink resolution. Validate runtime discovery separately from static parsing; do not imply that either proves live GitHub delivery.
-
-See the [initial setup validation record](AGENT-SETUP-VALIDATION.md) for executed checks and explicit limitations.
+Exercise ordinary issue, failed verification, reviewer correction, dirty worktree,
+and unavailable-model paths with isolated fixtures or read-only tabletop requests.
+See [harness validation](AGENT-HARNESS-VALIDATION.md) for current evidence and the
+[initial setup record](AGENT-SETUP-VALIDATION.md) for historical evidence only.

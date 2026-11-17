@@ -124,11 +124,11 @@ for drawn boundaries, batch requests, validation and limitations.
 
 ## Agent-assisted issue delivery
 
-Project-local Codex agents and skills coordinate architecture, BDD-style tests,
-Rust/Python/web implementation, independent verification, documentation, review,
-and issue-linked PR delivery. Start a fresh Codex session and use
-`$issue-orchestrator` with a GitHub issue URL. See the
-[workflow, role ownership, and evidence gates](docs/AGENT-WORKFLOW.md).
+The primary Codex session coordinates implementation and delivery, reusing two
+independent workers serially for review and final verification. Start a fresh
+session and use `$issue-orchestrator` with an issue URL. See the
+[workflow and evidence gates](docs/AGENT-WORKFLOW.md) and local
+[harness commands](docs/AGENT-WORKFLOW.md#harness-commands-and-discovery).
 
 ## Publish to GitHub
 

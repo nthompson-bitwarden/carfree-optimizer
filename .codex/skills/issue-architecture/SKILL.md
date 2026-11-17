@@ -1,10 +1,16 @@
 ---
 name: issue-architecture
-description: Review an issue's design before implementation and assess architectural conformance afterward for this Rust-first multimodal project.
+description: Independently review design, conformance, and final candidate code.
 ---
 
-Read `AGENTS.md`, `docs/ARCHITECTURE.md`, existing ADRs, and `docs/AGENT-WORKFLOW.md`. Work read-only; return design decisions and findings to the orchestrator.
+Work read-only. At design stage map criteria/dependencies to owned files, APIs,
+schemas, compatibility, failure behavior, tests, and prohibited neighboring edits.
+Consult relevant architecture/ADR/module contracts; require ADR and benchmark
+rationale for dependency additions or rewrites. At conformance stage inspect the
+actual diff for deterministic contracts, units/provenance, mobility constraints,
+Rust hot paths, and feasibility boundaries. At final stage use issue-code-review
+in this same worker thread. Return blockers with file/line and evidence references;
+architectural approval does not establish empirical or scientific acceptance.
 
-Before implementation, map acceptance criteria and dependencies to owned crates/files, public API and schema changes, data flow, failure behavior, compatibility, tests, and prohibited neighboring edits. Select the smallest approach that preserves contracts. Resolve shared-type ownership before coding. For a dependency addition or architectural rewrite, require an ADR and benchmark rationale as project guidance specifies. Hand the approved design to the test author and selected implementor.
-
-After implementation, inspect the actual diff against that handoff. Check crate boundaries, Rust hot paths, batched FFI where applicable, deterministic contracts, explicit failures, units/provenance, mobility constraints, and separation of abstract interventions from feasibility. Report PASS or actionable findings with file/line references and required changes. Do not substitute architectural approval for empirical verification, invent benchmark results, or claim calibration from unit tests.
+Follow shared scope, handoff, model, and evidence rules in docs/AGENT-WORKFLOW.md.
+Workers do not delegate, commit, or publish.
