@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations and an offline city/metro boundary-search pilot are implemented. The simulation is not yet implemented, and no planning-grade predictions should be inferred from this repository.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Transportation inputs and simulation are not yet implemented, and no planning-grade predictions should be inferred from this repository.
 
 ## Principles
 
@@ -46,14 +46,14 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 
 ```text
 crates/mobility-graph     shared network domain types
-crates/mobility-ingest    canonical geography catalogue and source-adapter boundary
+crates/mobility-ingest    geography catalogue, study areas, coverage and project snapshots
 crates/mobility-routing   routing boundary (not implemented)
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
 crates/mobility-sim      simulation interfaces (not yet implemented)
 crates/optimizer-env     planning environment interfaces
 crates/optimizer-bridge  training bindings boundary (not implemented)
-crates/mobility-api      static boundary-search presentation and CLI
+crates/mobility-api      offline search/onboarding CLIs and static HTML reports
 benchmarks/             synthetic metric fixture, Rust harness, measured history
 training/                future PyTorch training integration
 web/                     future Svelte/MapLibre app
@@ -97,6 +97,30 @@ Open the generated file in a browser. The default output is HTML on stdout;
 [source provenance and reproduction instructions](fixtures/geography/README.md).
 The generalized boundaries are a geographic preview, with no routing, demand,
 calibration, or accessibility predictions.
+
+## Saved study areas and city projects
+
+E02-S02–S06 add an offline `study-area` CLI. Select a pilot city/metro or supply
+drawn polygon rings, save a dated project with source versions and coverage gaps,
+expand a conservative buffer envelope, and import several projects in a batch.
+For example, use new output filenames:
+
+```sh
+cargo run -p mobility-api --bin study-area -- init cbsa:38900 2026-11-17 metro.tsv
+cargo run -p mobility-api --bin study-area -- scenario metro.tsv prior-plan
+cargo run -p mobility-api --bin study-area -- buffer metro.tsv 10
+cargo run -p mobility-api --bin study-area -- preview metro.tsv metro.html
+```
+
+Open `metro.html` to inspect the boundary, original core, source coverage, missing
+required inputs, and stale scenario reference. There is no default output path:
+each command takes explicit file paths; new projects and reports refuse to
+overwrite files. Updates support one writer at a time. The buffer is a spherical
+bounding envelope in kilometres, with polar/dateline restrictions, rather than
+an exact polygon-distance buffer. Roads, transit, population and demand remain
+explicitly missing, so creating a project does not initialize a transportation
+model. See the [workflow, Rust API and stored schema guide](docs/STUDY-AREA-ONBOARDING.md)
+for drawn boundaries, batch requests, validation and limitations.
 
 ## Agent-assisted issue delivery
 

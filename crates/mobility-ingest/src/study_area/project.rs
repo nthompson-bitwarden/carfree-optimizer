@@ -1,4 +1,15 @@
 use super::*;
+
+const MAX_PROJECT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_SCENARIOS: usize = 10_000;
+
+fn scenario_row(scenario: &ScenarioRecord) -> String {
+    format!(
+        "scenario\t{}\t{}\t{}\n",
+        scenario.id, scenario.baseline_id, scenario.stale
+    )
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioRecord {
     pub id: String,
@@ -15,6 +26,10 @@ pub struct CityProject {
     import_attempts: u64,
     coverage: CoverageReport,
     scenarios: Vec<ScenarioRecord>,
+    // Derived, never persisted: keeps scenario additions independent of geometry
+    // and potentially large metadata sizes. Recomputed on initialize/expansion;
+    // successful loading records the verified canonical input length.
+    encoded_bytes: usize,
 }
 pub fn validate_date(date: &str) -> Result<(), OnboardingError> {
     let b = date.as_bytes();
@@ -123,8 +138,10 @@ impl CityProject {
             import_attempts: 1,
             coverage,
             scenarios: Vec::new(),
+            encoded_bytes: 0,
         };
         p.baseline_id = p.fingerprint();
+        p.check_encoded_size()?;
         Ok(p)
     }
     pub fn expand_buffer(
@@ -149,14 +166,19 @@ impl CityProject {
             .import_attempts
             .checked_add(1)
             .ok_or_else(|| err("import attempt overflow"))?;
-        self.area = area;
-        self.coverage = coverage;
-        self.revision = revision;
-        self.import_attempts = attempts;
-        self.baseline_id = self.fingerprint();
-        for s in &mut self.scenarios {
-            s.stale = true
+        // Stage the complete next state. An importer may return valid but very
+        // large metadata, so schema-size validation must precede any mutation.
+        let mut next = self.clone();
+        next.area = area;
+        next.coverage = coverage;
+        next.revision = revision;
+        next.import_attempts = attempts;
+        next.baseline_id = next.fingerprint();
+        for scenario in &mut next.scenarios {
+            scenario.stale = true;
         }
+        next.check_encoded_size()?;
+        *self = next;
         Ok(())
     }
     pub fn add_scenario(&mut self, id: &str) -> Result<(), OnboardingError> {
@@ -164,11 +186,36 @@ impl CityProject {
         if self.scenarios.iter().any(|s| s.id == id) {
             return Err(err("scenario ID already exists"));
         }
-        self.scenarios.push(ScenarioRecord {
+        if self.scenarios.len() >= MAX_SCENARIOS {
+            return Err(err("project cannot exceed 10000 scenarios"));
+        }
+        let scenario = ScenarioRecord {
             id: id.into(),
             baseline_id: self.baseline_id.clone(),
             stale: false,
-        });
+        };
+        // The only other serialized change is the scenario-count header. The
+        // shared encoder avoids copying/reformatting the entire project here.
+        let count_digits = self.scenarios.len().to_string().len();
+        let next_count_digits = (self.scenarios.len() + 1).to_string().len();
+        let next_bytes = self
+            .encoded_bytes
+            .checked_add(scenario_row(&scenario).len())
+            .and_then(|n| n.checked_add(next_count_digits - count_digits))
+            .ok_or_else(|| err("project encoded size overflow"))?;
+        if next_bytes > MAX_PROJECT_BYTES {
+            return Err(err("project exceeds 16 MiB schema limit"));
+        }
+        self.scenarios.push(scenario);
+        self.encoded_bytes = next_bytes;
+        Ok(())
+    }
+    fn check_encoded_size(&mut self) -> Result<(), OnboardingError> {
+        let bytes = self.to_tsv().len();
+        if bytes > MAX_PROJECT_BYTES {
+            return Err(err("project exceeds 16 MiB schema limit"));
+        }
+        self.encoded_bytes = bytes;
         Ok(())
     }
     pub fn id(&self) -> &str {
@@ -278,15 +325,12 @@ impl CityProject {
             self.scenarios.len()
         ));
         for s in &self.scenarios {
-            out.push_str(&format!(
-                "scenario\t{}\t{}\t{}\n",
-                s.id, s.baseline_id, s.stale
-            ))
+            out.push_str(&scenario_row(s))
         }
         out
     }
     pub fn from_tsv(input: &str) -> Result<Self, OnboardingError> {
-        if input.len() > 16 * 1024 * 1024 {
+        if input.len() > MAX_PROJECT_BYTES {
             return Err(err("project exceeds 16 MiB schema limit"));
         }
         let mut lines = input.lines();
@@ -400,7 +444,7 @@ impl CityProject {
         let baseline = row(&mut lines, "baseline", 2)?[1].to_owned();
         let s = row(&mut lines, "scenarios", 2)?;
         let count = num::<usize>(s[1])?;
-        if count > 10000 {
+        if count > MAX_SCENARIOS {
             return Err(err("too many scenarios"));
         }
         let mut scenarios: Vec<ScenarioRecord> = Vec::new();
@@ -436,6 +480,7 @@ impl CityProject {
             import_attempts,
             coverage,
             scenarios,
+            encoded_bytes: input.len(),
         };
         if project.baseline_id != project.fingerprint() {
             return Err(err("baseline does not match persisted project inputs"));

@@ -713,3 +713,113 @@ fn e02_s03_given_catalogue_identity_matches_but_source_or_core_differs_then_inge
         );
     }
 }
+
+#[test]
+fn e02_s04_given_maximum_scenario_count_then_next_addition_fails_without_creating_unloadable_state()
+{
+    let mut importer = CountingImporter::default();
+    let mut project =
+        CityProject::initialize("scenario-limit", core(), "2024-02-29", &mut importer).unwrap();
+    for index in 0..10_000 {
+        project.add_scenario(&format!("s{index}")).unwrap();
+    }
+    let before = project.to_tsv();
+    assert_eq!(
+        CityProject::from_tsv(&before).unwrap().scenarios().len(),
+        10_000
+    );
+    assert!(
+        project.add_scenario("overflow").is_err(),
+        "an accepted operation must not exceed the loader's 10000-scenario limit"
+    );
+    assert_eq!(project.to_tsv(), before);
+    assert_eq!(project.scenarios().len(), 10_000);
+}
+
+#[test]
+fn e02_s04_given_oversized_initial_metadata_then_no_unreloadable_project_is_accepted() {
+    let area = StudyArea::drawn(
+        "synthetic-core",
+        &"x".repeat(16 * 1024 * 1024),
+        region(),
+        "EPSG:4326",
+        vec![rectangle(-123.0, 45.0, -122.9, 45.1)],
+    )
+    .unwrap();
+    let mut importer = CountingImporter::default();
+    assert!(
+        CityProject::initialize("initial-byte-limit", area, "2024-02-29", &mut importer).is_err(),
+        "full project serialization exceeds the public 16 MiB loader limit"
+    );
+}
+
+#[test]
+fn e02_s04_given_near_size_limit_then_scenario_addition_rejects_overflow_atomically() {
+    const MAX_BYTES: usize = 16 * 1024 * 1024;
+    const RESERVE: usize = 64;
+    let make_area = |name: &str| {
+        StudyArea::drawn(
+            "synthetic-core",
+            name,
+            region(),
+            "EPSG:4326",
+            vec![rectangle(-123.0, 45.0, -122.9, 45.1)],
+        )
+        .unwrap()
+    };
+    let mut importer = CountingImporter::default();
+    let small = CityProject::initialize(
+        "scenario-byte-limit",
+        make_area("x"),
+        "2024-02-29",
+        &mut importer,
+    )
+    .unwrap();
+    // Find the fixture's fixed metadata overhead through public serialization.
+    // No checksum or record construction is reproduced in this test.
+    let name_length = MAX_BYTES - RESERVE - (small.to_tsv().len() - 1);
+    let mut project = CityProject::initialize(
+        "scenario-byte-limit",
+        make_area(&"x".repeat(name_length)),
+        "2024-02-29",
+        &mut importer,
+    )
+    .unwrap();
+    let before = project.to_tsv();
+    assert_eq!(before.len(), MAX_BYTES - RESERVE);
+    assert!(
+        CityProject::from_tsv(&before).is_ok(),
+        "valid near-limit state must reload"
+    );
+    assert!(
+        project.add_scenario(&"s".repeat(128)).is_err(),
+        "valid identifier would make the full schema exceed 16 MiB"
+    );
+    assert_eq!(project.to_tsv(), before);
+    assert!(project.scenarios().is_empty());
+}
+
+#[test]
+fn e02_s05_given_oversized_reimport_result_then_buffer_change_preserves_reloadable_previous_state()
+{
+    struct OversizedImporter;
+    impl Importer for OversizedImporter {
+        fn ingest(&mut self, _: &StudyArea, _: &str) -> Result<CoverageReport, OnboardingError> {
+            let mut report = missing_report();
+            report.entries[0].detail = "x".repeat(17 * 1024 * 1024);
+            Ok(report)
+        }
+    }
+    let mut importer = CountingImporter::default();
+    let mut project =
+        CityProject::initialize("buffer-byte-limit", core(), "2024-02-29", &mut importer).unwrap();
+    project.add_scenario("preserved").unwrap();
+    let before = project.to_tsv();
+    assert!(
+        project.expand_buffer(5.0, &mut OversizedImporter).is_err(),
+        "oversized imported metadata must not become accepted project state"
+    );
+    assert_eq!(project.to_tsv(), before);
+    assert!(CityProject::from_tsv(&project.to_tsv()).is_ok());
+    assert!(!project.scenarios()[0].stale);
+}
