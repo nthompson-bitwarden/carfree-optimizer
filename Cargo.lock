@@ -23,6 +23,9 @@ dependencies = [
 [[package]]
 name = "mobility-api"
 version = "0.1.0"
+dependencies = [
+ "mobility-ingest",
+]
 
 [[package]]
 name = "mobility-graph"
