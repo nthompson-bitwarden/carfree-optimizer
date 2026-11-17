@@ -22,7 +22,7 @@ These are ownership boundaries, not a claim that the planned pipeline is
 implemented. [Module contracts](MODULE-CONTRACTS.md) list the current public
 surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 
-- `mobility-ingest`: source-adapter boundary; no adapters or ingest operations yet.
+- `mobility-ingest`: canonical geography catalogue, structural boundary validation, and deterministic search (E02-S01). Transport-network adapters remain future work.
 - `mobility-graph`: domain graph and mode concepts; does not depend on RL.
 - `mobility-routing`: routing boundary depending on graph types; no router yet.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
@@ -30,8 +30,17 @@ surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 - `mobility-sim`: candidate scenario evaluation interface and eventually native fast simulator.
 - `optimizer-env`: Markov decision process contracts and action feasibility; objective policies interchangeable.
 - `optimizer-bridge`: boundary depending on `optimizer-env`; future bindings batch Rust transitions into the training runtime, avoiding per-trip FFI chatter. No bindings yet.
-- `mobility-api`: future service boundary for reproducible experiments and versioned results. No HTTP server or endpoints yet; Axum remains proposed.
+- `mobility-api`: static accessible HTML/SVG boundary-search rendering and a CLI using `mobility-ingest` (E02-S01); future service boundary for reproducible experiments and versioned results. No HTTP server or endpoints yet; Axum remains proposed.
 - Svelte frontend (future): interfaces with API and MapLibre; no authoritative model calculation in browser.
+
+The [geography search contract](GEOGRAPHY-SEARCH.md) uses only Rust's standard
+library and a local crate dependency. A separate Python preparation script
+verifies pinned Census archives and extracts the three-area pilot into a
+versioned TSV catalogue and source manifest. Runtime loading, search, and
+presentation remain Rust and require no network. These source boundaries are
+generalized geographic data, not observed transportation behavior or model
+outputs. Polygon topology, saved study areas, project initialization, and
+simulation remain separate stories.
 
 ## Scientific safeguards
 
