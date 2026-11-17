@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Planning and initial workspace scaffold. The simulation is not yet implemented, and no planning-grade predictions should be inferred from this repository.
+> **Project status:** Workspace foundations and an offline city/metro boundary-search pilot are implemented. The simulation is not yet implemented, and no planning-grade predictions should be inferred from this repository.
 
 ## Principles
 
@@ -46,14 +46,14 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 
 ```text
 crates/mobility-graph     shared network domain types
-crates/mobility-ingest    source-adapter boundary (not implemented)
+crates/mobility-ingest    canonical geography catalogue and source-adapter boundary
 crates/mobility-routing   routing boundary (not implemented)
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
 crates/mobility-sim      simulation interfaces (not yet implemented)
 crates/optimizer-env     planning environment interfaces
 crates/optimizer-bridge  training bindings boundary (not implemented)
-crates/mobility-api      application service boundary (not implemented)
+crates/mobility-api      static boundary-search presentation and CLI
 benchmarks/             synthetic metric fixture, Rust harness, measured history
 training/                future PyTorch training integration
 web/                     future Svelte/MapLibre app
@@ -75,9 +75,28 @@ for the full quality gates and [benchmark usage](docs/BENCHMARKS.md) for measure
 primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
 identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
 
-No external input downloads, route computation, HTTP service, simulator, or Python
+No runtime external input downloads, route computation, HTTP service, simulator, or Python
 bindings have been wired up yet. The benchmark is a developer demonstration of an
 existing metric primitive; it provides no planning predictions.
+
+## City and metropolitan area search
+
+E02-S01 provides deterministic offline search and a standalone HTML/SVG boundary
+preview. The bundled Census 2024 pilot covers exactly Portland, Maine; Portland,
+Oregon; and Portland-Vancouver-Hillsboro, OR-WA Metro Area. It is not a nationwide
+catalogue. An ambiguous query displays every supported candidate.
+
+```sh
+cargo run -p mobility-api --bin city-search -- 'Portland' --output /tmp/carfree-boundaries.html
+```
+
+Open the generated file in a browser. The default output is HTML on stdout;
+`--output` requires a new file and refuses to overwrite an existing one. Try
+`'Portland ME'`, `'Portland OR'`, or `'cbsa:38900'` for narrower results. See the
+[search/API/schema guide](docs/GEOGRAPHY-SEARCH.md) and
+[source provenance and reproduction instructions](fixtures/geography/README.md).
+The generalized boundaries are a geographic preview, with no routing, demand,
+calibration, or accessibility predictions.
 
 ## Agent-assisted issue delivery
 

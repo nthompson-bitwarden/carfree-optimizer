@@ -49,12 +49,19 @@ Agents should coordinate changes to shared types through reviewed interface chan
 
 ## Issue delivery team
 
-All new project commits must use the repository-local Git identity associated with `nthompson-bitwarden` as both
-author and committer and be cryptographically signed with the user's registered
+All new project commits must use the repository-local Git identity associated with `nthompson-bitwarden`
+as author and committer, using the account's verified GitHub noreply address for both email fields, and be cryptographically signed with the user's registered
 key. Never attribute commits to Codex or other coding agents, including co-author
 trailers or generated-by footers. Verify signatures locally and require GitHub
 `verified: true` before reporting delivery complete. See the delivery skill for
 identity checks and failure handling. Preserve legitimate third-party authorship.
+
+Treat the configured email as private operational data. Do not copy it into PR titles or bodies,
+comments, commit messages, documentation, agent reports, or tracked configuration. Report only
+that identity and signature checks passed. Read the email from repository-local Git configuration
+for commit operations; do not print it in user-facing evidence. Git commit metadata exposes
+the configured email: do not change identities or rewrite published history without explicit
+user authorization; use a verified GitHub noreply address only when authorized.
 
 For a request to implement and deliver a GitHub issue, use `orchestrator` and
 `$issue-orchestrator`, following [the issue delivery workflow](docs/AGENT-WORKFLOW.md).
@@ -66,7 +73,7 @@ base/branch is specified. Architect reviews before and after implementation;
 test author establishes BDD-style acceptance tests first; language specialists
 implement; delivery commits; technical documentor checks the commit; final
 verification and committed-code review precede push and PR creation. Delivery
-includes the verifier's proof in the issue-linked PR. Required failed, blocked,
+retains the verifier's proof privately and publishes only a concise lint/test summary in the issue-linked PR. Required failed, blocked,
 or unrun gates prevent a ready PR. Other agents do not commit or publish.
 
 Every task handoff identifies the issue/story, dependencies, owned files, public
@@ -75,3 +82,7 @@ Preserve unrelated changes and serialize shared-contract edits. Agent profiles
 are in `.codex/agents`; role skills are in `.codex/skills`, discovered through
 the repository's `.agents/skills` symlinks. These instructions preserve the parent
 session's permissions and do not authorize merging.
+
+Keep detailed gate reports in private handoffs. Public PR descriptions contain a concise problem/change
+summary, relevant limitations, and lint/test commands with results only. Do not publish local paths,
+host details, identity/signing checks, internal agent reports, commit bookkeeping, or artifact hashes.

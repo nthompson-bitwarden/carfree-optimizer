@@ -66,18 +66,25 @@ flowchart TD
     L -->|No| M[Orchestrator routes findings to owners]
     M --> E
     L -->|Yes| N[Delivery pushes issue branch]
-    N --> O[Delivery creates or updates issue PR with proof]
+    N --> O[Delivery creates or updates issue PR with lint/test summary]
 ```
 
 Delivery defaults to `codex/issue-<number>-<slug>` from a freshly fetched `origin/main`. An explicit base/branch overrides that default. Unrelated index and worktree changes are preserved; use an isolated worktree if needed. Missing remote/base, issue ambiguity, conflicting branch history, or authentication failure blocks dependent delivery steps with a specific explanation. Do not silently substitute a local base or run the repository publishing script.
 
 Explicit-path staging does not remove preexisting unrelated index entries. Inspect the entire index and prefer an isolated worktree before committing. For an established continuation, a scoped `git commit --only -- <owned paths>` is allowed only when those paths contain no unrelated edits; verify the unrelated index entries remain intact afterward.
 
-New project commits use the repository-local Git identity associated with `nthompson-bitwarden` as both author and committer, with no coding-agent attribution in metadata or messages. Delivery checks effective identities, signs every commit (including merges and amendments), verifies signatures locally, and checks GitHub's commit API after push for `verified: true`, `reason: valid`, and the expected account attribution. Local signing alone is insufficient. Preserve legitimate third-party authorship. Missing signing capability or failed GitHub verification blocks completed delivery; published-history repair requires explicit user authorization and an exact-SHA lease.
+New project commits use the repository-local Git identity associated with `nthompson-bitwarden` as both author and committer, with the account's verified GitHub noreply address for both email fields, with no coding-agent attribution in metadata or messages. Delivery checks effective identities, signs every commit (including merges and amendments), verifies signatures locally, and checks GitHub's commit API after push for `verified: true`, `reason: valid`, and the expected account attribution. Local signing alone is insufficient. Preserve legitimate third-party authorship. Missing signing capability or failed GitHub verification blocks completed delivery; published-history repair requires explicit user authorization and an exact-SHA lease.
+
+Keep the configured email private. Obtain it from repository-local Git configuration, never from
+tracked instructions. Do not include it or raw identity payloads in PRs, comments, commit
+messages, reports, documentation, or tracked files. Private identity evidence reports account attribution
+and verification status only; public PR validation contains lint/test results only. Before publication, check the complete text for personal email
+addresses. Git commit metadata itself exposes the configured email; changing identity or
+rewriting published history requires explicit authorization.
 
 ## Handoff and evidence contract
 
-Use this compact handoff for every assignment and result. `pending` or `not applicable` is explicit when a candidate or public change does not yet exist.
+Use this private internal handoff for every assignment and result. It is not a PR template; do not copy it into public descriptions. `pending` or `not applicable` is explicit when a candidate or public change does not yet exist.
 
 ```text
 Issue URL / number and repository:
@@ -99,21 +106,23 @@ Verifier evidence is tied to a committed candidate and follows this format:
 | --- | --- | --- | --- |
 | Exact issue criterion or required check | Reproducible invocation and test IDs | PASS, FAIL, BLOCKED, or NOT RUN | Observed result, output/artifact reference, limitation |
 
-Attach base/candidate SHAs, tool/environment versions, and relevant fixture/source versions, seeds, units, provenance, uncertainty, and benchmark hardware. A PASS means the stated check ran successfully. FAIL means it ran and contradicted expectations. BLOCKED identifies a prerequisite failure. NOT RUN means there is no execution evidence. Required gaps block a ready PR; optional suggestions and checks must be labeled as such, with rationale.
+Record privately the base/candidate SHAs, tool/environment versions, and relevant fixture/source versions, seeds, units, provenance, uncertainty, and benchmark hardware. A PASS means the stated check ran successfully. FAIL means it ran and contradicted expectations. BLOCKED identifies a prerequisite failure. NOT RUN means there is no execution evidence. Required gaps block a ready PR; optional suggestions and checks must be labeled as such, with rationale.
 
 Always run `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace`. Add actual ecosystem-specific checks once UI/training code is introduced. User-facing features need a human-reviewable demonstration. Simulation-critical changes need complexity and representative benchmark evidence. Baseline calibration, independent scientific validation, and external acceptance remain distinct gates whenever the issue requires them.
 
-Documentation changes are committed before final verification/review. A later fix requires documentation-impact reassessment, architectural reassessment when relevant, renewed affected verification, final required checks, and review of the final committed diff. Carry forward an unchanged check only with verifier justification and its source SHA. Never label stale evidence as a fresh run. Evidence may be attached in the PR or referenced as an artifact; it need not be committed, avoiding a self-referential commit hash.
+Documentation changes are committed before final verification/review. A later fix requires documentation-impact reassessment, architectural reassessment when relevant, renewed affected verification, final required checks, and review of the final committed diff. Carry forward an unchanged check only with verifier justification and its source SHA. Never label stale evidence as a fresh run. Keep detailed evidence in private handoffs or private artifacts; it need not be committed. Publish only relevant lint/test commands and results in PR validation.
 
 ## PR and failure handling
 
-The ready PR includes:
+The ready PR includes a concise problem/change summary, `Closes #<number>` for completed scope,
+relevant compatibility notes or limitations, and a short validation section containing only
+lint/test commands and results. Scale this to the change; do not paste the internal evidence table.
 
-- Problem, resulting behavior, and `Closes #<number>` for the completed issue.
-- Story ID, architecture/public-contract decisions, and compatibility or migration notes.
-- Final verified/reviewed SHA and acceptance evidence table, with reproducible commands and artifacts.
-- Architecture conformance, code-review disposition, and documentation updates or no-change rationale.
-- Relevant benchmark, provenance, uncertainty, and limitations; explicitly identify optional unrun checks.
+Keep local paths, host/environment details, author/signing/identity checks, internal agent and
+architecture/documentation/review reports, base/candidate SHA bookkeeping, artifact hashes,
+and exhaustive local control scenarios out of public PR descriptions. Required internal gates
+still run and retain their full evidence privately. Delivery checks the complete proposed PR
+copy for personal information and publication scope before posting or updating it.
 
 Delivery checks for an existing PR on the same repository/head branch before creating one. Push normally to the issue branch; never force-push or merge by default. If a network request has an uncertain result, inspect remote state before retrying. If push succeeds but PR creation fails, report the pushed branch/SHA and PR blocker. Never describe partial delivery as complete.
 

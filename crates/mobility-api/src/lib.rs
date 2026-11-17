@@ -1,4 +1,3 @@
-//! Application service boundary (E01-S01).
-//!
-//! Future services initiate reproducible experiments and expose versioned
-//! results. No HTTP server, endpoints, persistence, or model is implemented yet.
+//! Application presentation boundary; no HTTP service or scientific model.
+pub mod geography;
+pub use geography::render_search_results;

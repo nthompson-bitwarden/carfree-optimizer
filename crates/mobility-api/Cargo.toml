@@ -2,3 +2,6 @@
 name = "mobility-api"
 version.workspace = true
 edition.workspace = true
+
+[dependencies]
+mobility-ingest = { path = "../mobility-ingest" }

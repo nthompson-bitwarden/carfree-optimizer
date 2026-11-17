@@ -1,0 +1,68 @@
+{
+  "catalogue_sha256": "7ff82f7210bbc56759b8b517667c0c2a71e15adfa839883674a0c106d097242c",
+  "crs": "EPSG:4326",
+  "license": "U.S. Census Bureau public domain; attribution requested",
+  "retrieved_date": "2026-11-17",
+  "scale": "1:500000",
+  "schema": "carfree-geography-source-v1",
+  "sources": [
+    {
+      "canonical_name": "Portland city",
+      "id": "place:2360545",
+      "member": "cb_2024_23_place_500k.kml",
+      "member_sha256": "20b47eacc4215dc1d168c9f6c7ec8497e91d0b1b6b852dc7a87f4ead76749e6a",
+      "ring_vertex_counts": [
+        7,
+        16,
+        20,
+        31,
+        16,
+        107
+      ],
+      "states": [
+        "ME"
+      ],
+      "url": "https://www2.census.gov/geo/tiger/GENZ2024/kml/cb_2024_23_place_500k.zip",
+      "zip_sha256": "f6960ad20bc755c1054d8d2eb8cbe0d99291436266af7e7014c1531ac23bcd4f"
+    },
+    {
+      "canonical_name": "Portland city",
+      "id": "place:4159000",
+      "member": "cb_2024_41_place_500k.kml",
+      "member_sha256": "27f98a8072992c41e135c7e10417d3960a81649963b91eab4837962f61a4e35b",
+      "ring_vertex_counts": [
+        599,
+        8,
+        9,
+        9,
+        13,
+        4,
+        7,
+        7,
+        10
+      ],
+      "states": [
+        "OR"
+      ],
+      "url": "https://www2.census.gov/geo/tiger/GENZ2024/kml/cb_2024_41_place_500k.zip",
+      "zip_sha256": "b6cd97a27f60e595bef09fba3452302e2d818758b4ede7116c855291cd16251b"
+    },
+    {
+      "canonical_name": "Portland-Vancouver-Hillsboro, OR-WA Metro Area",
+      "id": "cbsa:38900",
+      "member": "cb_2024_us_cbsa_500k.kml",
+      "member_sha256": "87d81896f205042ed7081808d86abd198e557540f6d963710b409d1f13c002e2",
+      "ring_vertex_counts": [
+        1377
+      ],
+      "states": [
+        "OR",
+        "WA"
+      ],
+      "url": "https://www2.census.gov/geo/tiger/GENZ2024/kml/cb_2024_us_cbsa_500k.zip",
+      "zip_sha256": "683216b2fc2d2f5593fcd3c3c52b27e1dded0eba9d2efa6e2d259138e95613f4"
+    }
+  ],
+  "units": "longitude/latitude degrees",
+  "vintage": "2024"
+}
