@@ -2,3 +2,14 @@
 name = "mobility-ingest"
 version.workspace = true
 edition.workspace = true
+
+[dependencies]
+chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
+csv = "=1.4.0"
+gtfs-realtime = "=0.2.0"
+parquet = { version = "=58.3.0", default-features = false, features = ["snap", "zstd", "flate2-rust_backened"] }
+prost = "=0.14.3"
+quick-xml = "=0.39.4"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+tempfile = "=3.27.0"

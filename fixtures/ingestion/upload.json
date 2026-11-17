@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": {
+    "id": "demo-facilities",
+    "version": "1",
+    "uri": "urn:carfree:fixture:demo-facilities",
+    "attribution": "Car Independence Optimizer synthetic fixture",
+    "license_terms": "MIT, as distributed with this repository",
+    "retrieved_on": "2026-11-17",
+    "geography": "Fictional points of interest",
+    "coverage": "Two synthetic rows for demonstration",
+    "review": "redistribution_approved"
+  },
+  "input": {
+    "kind": "custom",
+    "format": "csv",
+    "path": "upload.csv",
+    "fields": {
+      "name": { "column": "facility", "type": "text", "required": true },
+      "visits": { "column": "visits", "type": "integer", "required": true }
+    }
+  }
+}

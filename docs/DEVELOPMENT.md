@@ -2,12 +2,13 @@
 
 This setup implements E01-S02 and the infrastructure gates for E01-S04. It needs
 Bash, Git (for benchmark revision metadata), rustup, and Python 3.11 or newer
-with standard-library `tomllib`. No Python packages or external Rust dependencies
-are required. The Rust toolchain is pinned to 1.97.1 in `rust-toolchain.toml`;
+with standard-library `tomllib`, the Protocol Buffers compiler (`protoc`),
+and a C toolchain for the Parquet Zstd codec. No Python packages are required. The Rust toolchain is pinned to 1.97.1 in `rust-toolchain.toml`;
 `Cargo.lock` is committed. Install once, then run the one-command setup:
 
 ```sh
 rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+rustup run 1.97.1 cargo fetch --locked
 ./scripts/bootstrap.sh
 ```
 
@@ -33,8 +34,9 @@ bootstrap behavior and missing-tool errors, dependency rejection, benchmark
 history/comparison failure handling, and contract/ADR presence. Structural checks
 are explicitly infrastructure evidence; they do not validate scientific models.
 
-The dependency policy rejects declared registry/git dependencies before metadata
-resolution and checks locked, offline Cargo metadata for external sources. To
+The dependency policy checks declarations before resolving locked, offline Cargo
+metadata. It allows the exact registry dependencies declared in ADR 0002 for
+`mobility-ingest` plus their locked, checksummed crates.io resolutions. To
 inspect another manifest, use
 `python3 scripts/check-dependencies.py --manifest-path /path/to/Cargo.toml`.
 External dependencies require reviewed ADR/benchmark rationale and an explicit
@@ -42,7 +44,8 @@ policy change. This is a source policy, not a vulnerability database audit.
 
 The `Rust CI` job targets `ubuntu-24.04`, with Python 3.12 and
 the Rust repository pin. Main/`codex/**` pushes, pull requests, and manual dispatch
-run bootstrap, formatting, clippy, workspace tests, dependency policy, and the
+install `protoc`, fetch the locked dependencies, then run bootstrap, formatting,
+clippy, workspace tests, dependency policy, and the
 foundation suite. Workflow configuration alone does not prove the job passed:
 delivery evidence must identify the actual candidate SHA and runner result.
 Candidate branch pushes can collect that evidence before a ready PR.
