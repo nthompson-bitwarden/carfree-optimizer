@@ -6,7 +6,7 @@ Build a scientifically defensible, Rust-first multimodal planning application th
 
 ## Start here
 
-1. Read `README.md`, `docs/ARCHITECTURE.md`, and `backlog/car_independence_backlog.md`.
+1. At intake, read `README.md`, `docs/ARCHITECTURE.md`, and the relevant story in `backlog/car_independence_backlog.md`. Workers read only assigned contracts and criteria.
 2. Pick one story ID (e.g. `E05-S01`); record its acceptance criteria and dependencies.
 3. Identify the crate(s) you will own. Prefer small changes that preserve public contracts.
 4. Add deterministic fixtures and tests before or alongside the implementation.
@@ -49,9 +49,10 @@ Agents should coordinate changes to shared types through reviewed interface chan
 
 ## Issue delivery team
 
-All new project commits must use the repository-local Git identity associated with `nthompson-bitwarden`
-as author and committer, using the account's verified GitHub noreply address for both email fields, and be cryptographically signed with the user's registered
-key. Never attribute commits to Codex or other coding agents, including co-author
+All new project commits must use the repository-local Git identity associated with `nthompson-bitwarden` as both
+author and committer and be cryptographically signed with the user's registered
+key. Require the account’s verified GitHub noreply address for both email fields;
+a personal address blocks new commits. Never attribute commits to Codex or other coding agents, including co-author
 trailers or generated-by footers. Verify signatures locally and require GitHub
 `verified: true` before reporting delivery complete. See the delivery skill for
 identity checks and failure handling. Preserve legitimate third-party authorship.
@@ -63,26 +64,15 @@ for commit operations; do not print it in user-facing evidence. Git commit metad
 the configured email: do not change identities or rewrite published history without explicit
 user authorization; use a verified GitHub noreply address only when authorized.
 
-For a request to implement and deliver a GitHub issue, use `orchestrator` and
-`$issue-orchestrator`, following [the issue delivery workflow](docs/AGENT-WORKFLOW.md).
-This authorizes bounded specialist delegation for that issue. Follow an explicitly
-narrower user scope, such as local work only.
+For issue delivery, the primary session uses `$issue-orchestrator` and remains the
+sole coordinator and default implementer, test author, documentor, and delivery owner.
+Follow [the shared workflow](docs/AGENT-WORKFLOW.md) and the complete
+[public-copy privacy boundary](docs/AGENT-DELIVERY.md#privacy-of-identity-evidence). Reuse two independent workers
+serially: `architect` for design/conformance/code review, `verifier` for final checks.
+Additional language specialists need a concrete cross-module reason. No worker delegates.
+Narrower user scope overrides delivery defaults; no merging is authorized.
 
-Delivery prepares the branch from freshly fetched `origin/main` unless another
-base/branch is specified. Architect reviews before and after implementation;
-test author establishes BDD-style acceptance tests first; language specialists
-implement; delivery commits; technical documentor checks the commit; final
-verification and committed-code review precede push and PR creation. Delivery
-retains the verifier's proof privately and publishes only a concise lint/test summary in the issue-linked PR. Required failed, blocked,
-or unrun gates prevent a ready PR. Other agents do not commit or publish.
-
-Every task handoff identifies the issue/story, dependencies, owned files, public
-contracts, tests, prohibited cross-module changes, evidence status, and next owner.
-Preserve unrelated changes and serialize shared-contract edits. Agent profiles
-are in `.codex/agents`; role skills are in `.codex/skills`, discovered through
-the repository's `.agents/skills` symlinks. These instructions preserve the parent
-session's permissions and do not authorize merging.
-
-Keep detailed gate reports in private handoffs. Public PR descriptions contain a concise problem/change
-summary, relevant limitations, and lint/test commands with results only. Do not publish local paths,
-host details, identity/signing checks, internal agent reports, commit bookkeeping, or artifact hashes.
+Every handoff identifies issue/story, dependencies, owned files, public contracts,
+tests, prohibited cross-module changes, candidate/evidence, and next owner.
+Preserve unrelated work; serialize shared-contract edits. Profiles are under
+`.codex/agents`; skills are exposed through `.agents/skills` symlinks.

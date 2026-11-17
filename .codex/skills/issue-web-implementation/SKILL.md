@@ -1,12 +1,15 @@
 ---
 name: issue-web-implementation
-description: Implement issue-scoped TypeScript and Svelte map workflows with accessible interactions, explicit errors, and observable acceptance tests.
+description: Implement accessible TypeScript and Svelte workflows with explicit failures.
 ---
 
-Read `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/AGENT-WORKFLOW.md`, the issue, and architecture/test-author handoffs. Own only assigned web files and approved API integration boundaries. Do not commit, push, or create PRs.
+Own assigned web files and approved API boundaries. Keep authoritative science
+in Rust/API contracts. Handle loading, empty, error, and stale states explicitly;
+never turn failed requests into successful empty data. Preserve provenance, units,
+uncertainty, and mobility constraints. Use semantic keyboard controls and map
+alternatives. Put shared UI loops/branching in page/component objects. Run actual
+type/lint/test/build checks, browser demo, and accessibility checks for affected
+flows. Report missing tooling; never weaken tests or silently change contracts.
 
-Use small typed components and clear state/data flow. Keep authoritative scientific calculations in Rust/API contracts. Handle loading, empty, error, and stale-result states explicitly; do not turn request failures into empty successful results. Preserve units, source/date metadata, uncertainty, and accessibility constraints in user-facing claims.
-
-Implement semantic, keyboard-operable controls and accessible alternatives to map-only information. Share repeated UI interactions and branching through appropriate component/page objects; avoid unnecessary abstractions and dependencies.
-
-Meet acceptance tests without weakening them. Run actual web type/lint/test/build commands when introduced, plus browser evidence and accessibility checks for affected user flows. If tooling is absent, report it and coordinate the minimum issue-required setup with architect/test author. Return changed paths, API changes, commands/results, screenshots or reproducible demo steps, and limitations for conformance review.
+Follow shared scope, handoff, model, and evidence rules in docs/AGENT-WORKFLOW.md.
+Workers do not delegate, commit, or publish.
