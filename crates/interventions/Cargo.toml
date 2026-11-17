@@ -1,0 +1,7 @@
+[package]
+name = "interventions"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+mobility-graph = { path = "../mobility-graph" }

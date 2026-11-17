@@ -1,0 +1,1305 @@
+{
+  "project": "Car Independence Optimizer",
+  "vision": "Redesign US cities to progressively reduce dependence on private cars while maintaining or improving equitable, practical door-to-door access through walking, bicycles, e-bikes, buses, trains and light rail.",
+  "reference_architecture": {
+    "simulation": "Rust",
+    "routing": "Rust multimodal graph",
+    "RL": "PyTorch/Python with PyO3",
+    "data": "GeoArrow/Parquet + PostGIS",
+    "API": "Rust Axum",
+    "UI": "Svelte + MapLibre",
+    "calibration": "Observed data and independent detailed simulator"
+  },
+  "priorities": {
+    "P0": "Core MVP / first working vertical slice, with scientific prerequisites",
+    "P1": "Full product beta / robustness and useful planning",
+    "P2": "Expansion / advanced features"
+  },
+  "epics": [
+    {
+      "id": "E01",
+      "name": "Product foundations and agent-friendly engineering",
+      "outcome": "Reproducible Rust-first monorepo with explicit component contracts, safe agent workflows, and architecture decisions.",
+      "dependencies": [],
+      "stories": [
+        {
+          "id": "E01-S01",
+          "priority": "P0",
+          "persona": "maintainer",
+          "story": "As a maintainer, I want a Rust workspace with isolated crates for ingest, graph, routing, simulation, interventions, scoring, optimization bridge, and API, so that teams can build independently.",
+          "acceptance_criteria": "Workspace compiles on supported Linux and macOS runners; crate boundaries and interfaces are documented."
+        },
+        {
+          "id": "E01-S02",
+          "priority": "P0",
+          "persona": "developer",
+          "story": "As a developer, I want a one-command local development setup, so that I can reproduce builds and demos.",
+          "acceptance_criteria": "Pinned toolchains and lockfiles; bootstrap verifies dependencies and runs a smoke test."
+        },
+        {
+          "id": "E01-S03",
+          "priority": "P0",
+          "persona": "coding agent",
+          "story": "As a coding agent, I want an AGENTS.md and module-specific contracts, so that I can implement features without breaking neighboring modules.",
+          "acceptance_criteria": "Tasks identify owned files, public APIs, tests, and prohibited cross-module changes."
+        },
+        {
+          "id": "E01-S04",
+          "priority": "P0",
+          "persona": "maintainer",
+          "story": "As a maintainer, I want automated formatting, linting, unit tests, and dependency checks, so that every change has a consistent quality gate.",
+          "acceptance_criteria": "Required CI checks are green on a clean checkout."
+        },
+        {
+          "id": "E01-S05",
+          "priority": "P1",
+          "persona": "maintainer",
+          "story": "As a maintainer, I want a benchmark harness with regression history, so that we catch throughput or memory regressions.",
+          "acceptance_criteria": "Named fixtures, hardware metadata, and comparable benchmark outputs are stored."
+        },
+        {
+          "id": "E01-S06",
+          "priority": "P1",
+          "persona": "research lead",
+          "story": "As a research lead, I want versioned architecture decision records, so that technology choices remain evidence-based.",
+          "acceptance_criteria": "Simulator/RL/framework selections include benchmark rationale and an exit path."
+        }
+      ]
+    },
+    {
+      "id": "E02",
+      "name": "City discovery and study-area onboarding",
+      "outcome": "Users can locate and create repeatable transportation study areas for any supported US geography.",
+      "dependencies": [
+        "E01"
+      ],
+      "stories": [
+        {
+          "id": "E02-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to search for a US city or metropolitan area, so that I can begin an analysis without GIS expertise.",
+          "acceptance_criteria": "Search resolves canonical geography and displays its boundary."
+        },
+        {
+          "id": "E02-S02",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to choose city, metro, or drawn study-area boundaries, so that I can include commuter sheds beyond city limits.",
+          "acceptance_criteria": "Saved study area is a valid polygon with CRS and region metadata."
+        },
+        {
+          "id": "E02-S03",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want a preview of available city datasets and gaps, so that I know whether the model can be initialized.",
+          "acceptance_criteria": "Coverage report lists source, year, spatial extent, status, and missing required data."
+        },
+        {
+          "id": "E02-S04",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to initialize a city project with a snapshot date, so that I can reproduce the starting network.",
+          "acceptance_criteria": "Project records boundary, source versions, baseline ID, and import status."
+        },
+        {
+          "id": "E02-S05",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want to expand the buffer around an urban core, so that traffic diversion outside municipal lines is represented.",
+          "acceptance_criteria": "Boundary change re-runs affected ingestion and clearly marks prior scenarios stale."
+        },
+        {
+          "id": "E02-S06",
+          "priority": "P2",
+          "persona": "administrator",
+          "story": "As a administrator, I want batch imports of a catalog of cities, so that we can compare regional patterns at scale.",
+          "acceptance_criteria": "Imports are idempotent and report individual successes/failures."
+        }
+      ]
+    },
+    {
+      "id": "E03",
+      "name": "Public data connectors and provenance",
+      "outcome": "Ingest relevant US transportation, population, land-use and safety inputs with traceable licensing and timestamps.",
+      "dependencies": [
+        "E02"
+      ],
+      "stories": [
+        {
+          "id": "E03-S01",
+          "priority": "P0",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want to ingest OpenStreetMap roads, paths, turn restrictions and tags, so that the physical network is grounded in geography.",
+          "acceptance_criteria": "Import produces segment metadata, provenance, and a validation report."
+        },
+        {
+          "id": "E03-S02",
+          "priority": "P0",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want to ingest GTFS transit schedules and optional GTFS-Realtime, so that existing transit routes and service frequency are represented.",
+          "acceptance_criteria": "Service calendars, stops, trips and transfers parse with error reports."
+        },
+        {
+          "id": "E03-S03",
+          "priority": "P0",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want to ingest Census population and commuter origin-destination data, so that we can estimate activity locations and commute demand.",
+          "acceptance_criteria": "Each dataset has version, geography mapping, and known coverage limits."
+        },
+        {
+          "id": "E03-S04",
+          "priority": "P0",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want to ingest land use and destination points, so that non-commute trips can be modeled.",
+          "acceptance_criteria": "Destinations are categorized and deduplicated with source traceability."
+        },
+        {
+          "id": "E03-S05",
+          "priority": "P1",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want to integrate DOT traffic counts and observed speeds, so that the road model can be calibrated.",
+          "acceptance_criteria": "Observations retain location, timestamp, quality flags, and units."
+        },
+        {
+          "id": "E03-S06",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want to ingest crash and emissions-related inputs, so that safety and emissions metrics use defensible evidence.",
+          "acceptance_criteria": "Sources and uncertainty are recorded; fatal crash and nonfatal data are not conflated."
+        },
+        {
+          "id": "E03-S07",
+          "priority": "P1",
+          "persona": "administrator",
+          "story": "As a administrator, I want a licensing and freshness inventory, so that we know what data can legally be published or redistributed.",
+          "acceptance_criteria": "Each source records attribution, license terms, last retrieval and review state."
+        },
+        {
+          "id": "E03-S08",
+          "priority": "P2",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want custom CSV/GeoJSON/Parquet uploads with a schema mapper, so that cities with local datasets can improve model fidelity.",
+          "acceptance_criteria": "Preview, schema validation and rollback work without corrupting the baseline."
+        }
+      ]
+    },
+    {
+      "id": "E04",
+      "name": "Geospatial normalization and data quality",
+      "outcome": "Build a consistent spatial model from heterogeneous raw sources and surface uncertainty.",
+      "dependencies": [
+        "E03"
+      ],
+      "stories": [
+        {
+          "id": "E04-S01",
+          "priority": "P0",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want consistent coordinates, units, time zones and identifiers, so that layers can be overlaid and joined correctly.",
+          "acceptance_criteria": "CRS, units, local-time handling and geometry validity are tested."
+        },
+        {
+          "id": "E04-S02",
+          "priority": "P0",
+          "persona": "simulator developer",
+          "story": "As a simulator developer, I want snapped intersections and connected edges, so that routes do not fail due to import artifacts.",
+          "acceptance_criteria": "Topology tests detect dangling links, duplicate edges and impossible connections."
+        },
+        {
+          "id": "E04-S03",
+          "priority": "P0",
+          "persona": "transit modeler",
+          "story": "As a transit modeler, I want stops aligned to reachable walking paths, so that station access times are realistic.",
+          "acceptance_criteria": "Unreachable stops are flagged and manual fixes are auditable."
+        },
+        {
+          "id": "E04-S04",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want a per-layer completeness and uncertainty score, so that I can distinguish data absence from zero demand.",
+          "acceptance_criteria": "Quality dashboard shows missing regions, invalid values and confidence tiers."
+        },
+        {
+          "id": "E04-S05",
+          "priority": "P1",
+          "persona": "data engineer",
+          "story": "As a data engineer, I want automated anomaly reports for speeds, lane counts and connectivity, so that input errors do not become optimization results.",
+          "acceptance_criteria": "Outliers create reviewable findings and do not silently overwrite records."
+        },
+        {
+          "id": "E04-S06",
+          "priority": "P1",
+          "persona": "administrator",
+          "story": "As a administrator, I want immutable raw inputs and derived snapshot lineage, so that a scenario can be rebuilt later.",
+          "acceptance_criteria": "Every derived artifact references raw hashes and processing version."
+        }
+      ]
+    },
+    {
+      "id": "E05",
+      "name": "Multimodal network representation",
+      "outcome": "Create a time-aware graph supporting car, walking, conventional bicycle, e-bike, bus, rail and transfers.",
+      "dependencies": [
+        "E04"
+      ],
+      "stories": [
+        {
+          "id": "E05-S01",
+          "priority": "P0",
+          "persona": "traveler modeler",
+          "story": "As a traveler modeler, I want walking links with crossings and barriers, so that pedestrian journeys follow actual accessible routes.",
+          "acceptance_criteria": "Paths account for one-way access, crossings and disconnected segments."
+        },
+        {
+          "id": "E05-S02",
+          "priority": "P0",
+          "persona": "traveler modeler",
+          "story": "As a traveler modeler, I want bicycle and e-bike links with protection and safety attributes, so that mode-specific routing reflects infrastructure quality.",
+          "acceptance_criteria": "Routing distinguishes protected lanes, shared roads and forbidden segments."
+        },
+        {
+          "id": "E05-S03",
+          "priority": "P0",
+          "persona": "transit modeler",
+          "story": "As a transit modeler, I want scheduled bus, train and light-rail journeys, so that transit travel includes service reality.",
+          "acceptance_criteria": "Edges include schedules, headways, waiting, transfers and service calendars."
+        },
+        {
+          "id": "E05-S04",
+          "priority": "P0",
+          "persona": "simulator developer",
+          "story": "As a simulator developer, I want vehicle roads with capacity, direction and turn rules, so that driving is a valid reference mode.",
+          "acceptance_criteria": "Routes honor legal constraints and configurable capacity estimates."
+        },
+        {
+          "id": "E05-S05",
+          "priority": "P0",
+          "persona": "system engineer",
+          "story": "As a system engineer, I want stable graph serialization and version IDs, so that simulations reuse a canonical representation.",
+          "acceptance_criteria": "Round-trip serialization preserves connectivity and attributes."
+        },
+        {
+          "id": "E05-S06",
+          "priority": "P1",
+          "persona": "traveler modeler",
+          "story": "As a traveler modeler, I want park-and-ride and bike-on-transit/parking transfers, so that intermodal journeys are possible.",
+          "acceptance_criteria": "Transfer penalties, availability and restrictions are configurable."
+        },
+        {
+          "id": "E05-S07",
+          "priority": "P1",
+          "persona": "accessibility advocate",
+          "story": "As a accessibility advocate, I want step-free and mobility-aid accessible paths, so that the model does not treat every traveler as able to cycle.",
+          "acceptance_criteria": "Accessible routing excludes impassable infrastructure and identifies unmet trips."
+        }
+      ]
+    },
+    {
+      "id": "E06",
+      "name": "Travel demand and traveler diversity",
+      "outcome": "Construct time-dependent trips for essential and discretionary travel while modeling heterogeneous capabilities and choices.",
+      "dependencies": [
+        "E03",
+        "E05"
+      ],
+      "stories": [
+        {
+          "id": "E06-S01",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want time-of-day origin-destination demand for commute and non-commute trips, so that scenarios reflect the full day.",
+          "acceptance_criteria": "Trips have origin, destination, departure window, purpose and expansion weights."
+        },
+        {
+          "id": "E06-S02",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want population-weighted synthetic travelers, so that neighborhoods are represented proportionately.",
+          "acceptance_criteria": "Generated totals reconcile to documented source populations within defined tolerance."
+        },
+        {
+          "id": "E06-S03",
+          "priority": "P0",
+          "persona": "traveler modeler",
+          "story": "As a traveler modeler, I want a choice set across walking, biking, e-biking, transit and car, so that mode shifts are possible after investment.",
+          "acceptance_criteria": "Unavailable/infeasible modes are excluded per traveler and trip."
+        },
+        {
+          "id": "E06-S04",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want configurable generalized travel costs, so that choices respond to time, waiting, reliability and expense.",
+          "acceptance_criteria": "Parameters are explicit, unit-tested and versioned."
+        },
+        {
+          "id": "E06-S05",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want trip chaining and return journeys, so that grocery and school-dropoff trips are modeled.",
+          "acceptance_criteria": "Multi-stop itineraries maintain realistic time windows and load constraints."
+        },
+        {
+          "id": "E06-S06",
+          "priority": "P1",
+          "persona": "accessibility advocate",
+          "story": "As a accessibility advocate, I want traveler groups with different mobility constraints, so that results do not overstate bike suitability.",
+          "acceptance_criteria": "Groups can include noncyclists, wheelchair users, children and older adults."
+        },
+        {
+          "id": "E06-S07",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want weather, season and daylight profiles, so that cycling and walking availability varies realistically.",
+          "acceptance_criteria": "Scenario assumptions are selectable, labeled and sensitivity-tested."
+        },
+        {
+          "id": "E06-S08",
+          "priority": "P2",
+          "persona": "researcher",
+          "story": "As a researcher, I want long-term induced demand and relocation sensitivity, so that we can study adaptation over years.",
+          "acceptance_criteria": "Long-horizon effects are reported separately from short-term forecasts."
+        }
+      ]
+    },
+    {
+      "id": "E07",
+      "name": "Multimodal routing and door-to-door itineraries",
+      "outcome": "Produce realistic travel-time and flexibility comparisons across all supported modes.",
+      "dependencies": [
+        "E05",
+        "E06"
+      ],
+      "stories": [
+        {
+          "id": "E07-S01",
+          "priority": "P0",
+          "persona": "user",
+          "story": "As a user, I want door-to-door routing for car and car-free modes, so that I can compare equivalent journeys.",
+          "acceptance_criteria": "Itinerary includes access, wait, ride, transfer, egress and arrival time."
+        },
+        {
+          "id": "E07-S02",
+          "priority": "P0",
+          "persona": "user",
+          "story": "As a user, I want departure-time-aware transit routing, so that frequency and schedule constraints affect travel.",
+          "acceptance_criteria": "Off-service trips return infeasible instead of fabricated travel times."
+        },
+        {
+          "id": "E07-S03",
+          "priority": "P0",
+          "persona": "cyclist",
+          "story": "As a cyclist, I want bike/e-bike route selection based on infrastructure quality, so that unsafe shortcuts are not rewarded.",
+          "acceptance_criteria": "A tunable comfort/safety penalty is applied and inspectable."
+        },
+        {
+          "id": "E07-S04",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want batch origin-destination routing, so that accessibility can be measured citywide.",
+          "acceptance_criteria": "Matrix jobs run deterministically against an immutable network version."
+        },
+        {
+          "id": "E07-S05",
+          "priority": "P1",
+          "persona": "user",
+          "story": "As a user, I want multi-stop journeys and last-mile transfers, so that the model measures real errand flexibility.",
+          "acceptance_criteria": "Itineraries support configurable dwell times and transfer constraints."
+        },
+        {
+          "id": "E07-S06",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want travel-time variability across departure windows, so that spontaneity and service gaps are visible.",
+          "acceptance_criteria": "Results include percentile travel times and no-service fractions."
+        },
+        {
+          "id": "E07-S07",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want routing performance measurements, so that we can scale analysis sensibly.",
+          "acceptance_criteria": "Benchmarks report paths per second, latency and memory by graph size."
+        }
+      ]
+    },
+    {
+      "id": "E08",
+      "name": "Fast transportation simulation and behavior change",
+      "outcome": "Evaluate infrastructure changes using a fast Rust simulator that updates mode choice, routing and congestion.",
+      "dependencies": [
+        "E05",
+        "E06",
+        "E07"
+      ],
+      "stories": [
+        {
+          "id": "E08-S01",
+          "priority": "P0",
+          "persona": "simulation engineer",
+          "story": "As a simulation engineer, I want to run a deterministic baseline scenario, so that I can compare proposed networks fairly.",
+          "acceptance_criteria": "Same inputs and seed produce equivalent outputs with documented tolerances."
+        },
+        {
+          "id": "E08-S02",
+          "priority": "P0",
+          "persona": "simulation engineer",
+          "story": "As a simulation engineer, I want to apply network changes without rebuilding source data, so that scenario evaluation is efficient.",
+          "acceptance_criteria": "Simulator accepts immutable baseline plus a reversible intervention set."
+        },
+        {
+          "id": "E08-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want travelers to reconsider mode and route after infrastructure changes, so that removing car lanes need not assume permanent car demand.",
+          "acceptance_criteria": "Mode-choice iteration converges or reports nonconvergence."
+        },
+        {
+          "id": "E08-S04",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want time-dependent capacity and congestion, so that road interventions model diverted car trips.",
+          "acceptance_criteria": "Traffic volumes and travel times respond to changes in supply and demand."
+        },
+        {
+          "id": "E08-S05",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want waiting, crowding and capacity effects for transit, so that bus and rail improvements are not treated as infinite-capacity.",
+          "acceptance_criteria": "Boarding delay or denied boarding is modeled or explicitly bounded."
+        },
+        {
+          "id": "E08-S06",
+          "priority": "P1",
+          "persona": "simulation engineer",
+          "story": "As a simulation engineer, I want batched and parallel scenario evaluation, so that optimizers can search many alternatives.",
+          "acceptance_criteria": "Runs exploit multicore execution and report scenarios/second."
+        },
+        {
+          "id": "E08-S07",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want sensitivity analysis over uncertain demand and behavior, so that rankings are not artifacts of a single assumption.",
+          "acceptance_criteria": "Multiple seeds/parameter sets yield distributions, not just a point estimate."
+        },
+        {
+          "id": "E08-S08",
+          "priority": "P2",
+          "persona": "simulation engineer",
+          "story": "As a simulation engineer, I want an abstraction layer for alternate simulators, so that engines can evolve without rewriting the product.",
+          "acceptance_criteria": "Same scenario schema executes through at least two adapters."
+        }
+      ]
+    },
+    {
+      "id": "E09",
+      "name": "Baseline calibration and observed-data validation",
+      "outcome": "Establish trustworthy historical reference conditions before making optimization claims.",
+      "dependencies": [
+        "E03",
+        "E06",
+        "E08"
+      ],
+      "stories": [
+        {
+          "id": "E09-S01",
+          "priority": "P0",
+          "persona": "research lead",
+          "story": "As a research lead, I want to compare modeled flows with observed traffic counts, so that we know whether road demand is credible.",
+          "acceptance_criteria": "Residuals and source coverage are shown by location and time."
+        },
+        {
+          "id": "E09-S02",
+          "priority": "P0",
+          "persona": "transit analyst",
+          "story": "As a transit analyst, I want to compare modeled transit use with observed ridership where available, so that transit predictions have a reality check.",
+          "acceptance_criteria": "Differences are reported by route or service area with missing-data flags."
+        },
+        {
+          "id": "E09-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want to compare mode shares and commute times against surveys, so that baseline behavior is calibrated.",
+          "acceptance_criteria": "Calibration report includes targets, errors and model parameters."
+        },
+        {
+          "id": "E09-S04",
+          "priority": "P0",
+          "persona": "research lead",
+          "story": "As a research lead, I want a validation holdout dataset, so that tuning does not consume all available evidence.",
+          "acceptance_criteria": "Held-out observations are not used for fitting and have separate scores."
+        },
+        {
+          "id": "E09-S05",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want repeatable calibration runs, so that updates to demand parameters can be audited.",
+          "acceptance_criteria": "Calibration artifacts store seeds, source versions and parameter changes."
+        },
+        {
+          "id": "E09-S06",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want an explicit uncertainty/fitness banner, so that I do not mistake weak evidence for confidence.",
+          "acceptance_criteria": "Projects with failing calibration checks display limitations in results and exports."
+        }
+      ]
+    },
+    {
+      "id": "E10",
+      "name": "Infrastructure interventions and scenario authoring",
+      "outcome": "Enable valid, reversible redesign of streets, corridors, intersections, and connections.",
+      "dependencies": [
+        "E05",
+        "E08"
+      ],
+      "stories": [
+        {
+          "id": "E10-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to convert general-purpose road lanes to protected bike lanes, so that I can test reducing car-dedicated space.",
+          "acceptance_criteria": "Road capacity, bike connectivity and safety attributes update consistently."
+        },
+        {
+          "id": "E10-S02",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to create or improve continuous pedestrian connections, so that I can test walkability changes.",
+          "acceptance_criteria": "Edited links connect to the pedestrian graph and obey crossing constraints."
+        },
+        {
+          "id": "E10-S03",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to add or change dedicated bus lanes, so that I can test transit priority.",
+          "acceptance_criteria": "Road and transit travel times respond without double-counting lane capacity."
+        },
+        {
+          "id": "E10-S04",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to modify a whole corridor rather than isolated segments, so that interventions provide continuous travel utility.",
+          "acceptance_criteria": "Tool selects connected segments and previews gaps or incompatible junctions."
+        },
+        {
+          "id": "E10-S05",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to undo, redo, and version scenario changes, so that I can safely experiment.",
+          "acceptance_criteria": "Reverting restores the exact previous network state."
+        },
+        {
+          "id": "E10-S06",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want to remove or convert a road/highway segment, so that I can assess major car-capacity reductions.",
+          "acceptance_criteria": "Regional diversion, access continuity and emergency constraints are evaluated."
+        },
+        {
+          "id": "E10-S07",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want to add protected intersections and crossings, so that cycling/walking upgrades remain safe at junctions.",
+          "acceptance_criteria": "Intersection changes affect route comfort and crossing time."
+        },
+        {
+          "id": "E10-S08",
+          "priority": "P2",
+          "persona": "planner",
+          "story": "As a planner, I want to model land-use or destination changes separately, so that I can explore urban form as an extension.",
+          "acceptance_criteria": "Transport-only and transport-plus-land-use scenarios are clearly distinguished."
+        }
+      ]
+    },
+    {
+      "id": "E11",
+      "name": "Transit and intermodal service design",
+      "outcome": "Allow bus, BRT, tram/light rail and rail service proposals with operational realism.",
+      "dependencies": [
+        "E05",
+        "E07",
+        "E08",
+        "E10"
+      ],
+      "stories": [
+        {
+          "id": "E11-S01",
+          "priority": "P0",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to add or reroute bus service, so that I can serve underserved destinations.",
+          "acceptance_criteria": "Routes connect valid stops and have defined service calendars."
+        },
+        {
+          "id": "E11-S02",
+          "priority": "P0",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to change bus frequency, hours and transfer coordination, so that I can improve spontaneity and reliability.",
+          "acceptance_criteria": "Waiting and journey calculations update based on the new timetable."
+        },
+        {
+          "id": "E11-S03",
+          "priority": "P0",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to designate BRT or transit-priority corridors, so that I can test high-frequency service with dedicated capacity.",
+          "acceptance_criteria": "Road capacity and transit speed assumptions remain internally consistent."
+        },
+        {
+          "id": "E11-S04",
+          "priority": "P1",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to propose rail or light-rail lines and stations, so that I can evaluate high-capacity routes.",
+          "acceptance_criteria": "Routing respects stations, line frequency, travel times and transfers."
+        },
+        {
+          "id": "E11-S05",
+          "priority": "P1",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to add bike parking, bike access and station connections, so that intermodal journeys are practical.",
+          "acceptance_criteria": "Station access/egress changes affect door-to-door accessibility."
+        },
+        {
+          "id": "E11-S06",
+          "priority": "P1",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to estimate fleet, operator and operating requirements, so that plans are not costed as infrastructure alone.",
+          "acceptance_criteria": "Fleet hours and operating cost estimates accompany service changes."
+        },
+        {
+          "id": "E11-S07",
+          "priority": "P2",
+          "persona": "transit planner",
+          "story": "As a transit planner, I want to test timed transfers and fare policies, so that network integration can improve without new roads.",
+          "acceptance_criteria": "Fares, transfer timing and generalized travel costs are updated."
+        }
+      ]
+    },
+    {
+      "id": "E12",
+      "name": "Feasibility, costs, safety and physical constraints",
+      "outcome": "Exclude unsafe/impossible proposals and estimate implementation trade-offs with traceable assumptions.",
+      "dependencies": [
+        "E10",
+        "E11"
+      ],
+      "stories": [
+        {
+          "id": "E12-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want a configurable capital and annual operating budget, so that proposals remain financially bounded.",
+          "acceptance_criteria": "Invalid projects are blocked and cost categories are separated."
+        },
+        {
+          "id": "E12-S02",
+          "priority": "P0",
+          "persona": "engineer",
+          "story": "As a engineer, I want right-of-way and lane-width feasibility checks, so that a proposed street cross-section can physically fit.",
+          "acceptance_criteria": "Design violations are flagged with segment-level reasons."
+        },
+        {
+          "id": "E12-S03",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want emergency, disability, essential delivery and property-access constraints, so that car independence does not eliminate necessary access.",
+          "acceptance_criteria": "Hard constraints are tested before costly simulation."
+        },
+        {
+          "id": "E12-S04",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to retain regional network connectivity for freight and essential trips, so that road reductions do not create hidden disconnections.",
+          "acceptance_criteria": "Connectivity tests include designated critical origin-destination pairs."
+        },
+        {
+          "id": "E12-S05",
+          "priority": "P1",
+          "persona": "engineer",
+          "story": "As a engineer, I want construction, maintenance and transit operating cost models, so that lifecycle choices are comparable.",
+          "acceptance_criteria": "Unit-cost assumptions, year and local adjustment factors are exposed."
+        },
+        {
+          "id": "E12-S06",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want collision-risk estimates separated from vehicle movement models, so that safety benefits are not invented from simulated crashes.",
+          "acceptance_criteria": "Risk model, exposure, calibration source and uncertainty are reported."
+        },
+        {
+          "id": "E12-S07",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want construction phases and disruption costs, so that the order of projects is evaluated realistically.",
+          "acceptance_criteria": "Each phase has a valid network and temporary-service assumptions."
+        },
+        {
+          "id": "E12-S08",
+          "priority": "P2",
+          "persona": "engineer",
+          "story": "As a engineer, I want bridge, slope, utility and terrain restrictions, so that difficult locations are screened early.",
+          "acceptance_criteria": "Known restrictions are flagged; missing engineering evidence is labeled."
+        }
+      ]
+    },
+    {
+      "id": "E13",
+      "name": "Car independence, accessibility and equity scoring",
+      "outcome": "Measure the product goal directly, including all trips, populations, costs and reliability.",
+      "dependencies": [
+        "E07",
+        "E08",
+        "E09",
+        "E12"
+      ],
+      "stories": [
+        {
+          "id": "E13-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want the share of essential destinations reachable car-free within a time budget, so that I can measure real mobility rather than lane throughput.",
+          "acceptance_criteria": "Scores are computed by origin, destination type, mode set and departure window."
+        },
+        {
+          "id": "E13-S02",
+          "priority": "P0",
+          "persona": "resident",
+          "story": "As a resident, I want a car-free versus car door-to-door travel-time comparison, so that I can judge practical mobility parity.",
+          "acceptance_criteria": "Includes walking, waiting, transfers, reliability and infeasible trips."
+        },
+        {
+          "id": "E13-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want an estimated car-required trip share and mode distribution, so that the main objective is explicit.",
+          "acceptance_criteria": "Metric definitions, assumptions and confidence intervals are published."
+        },
+        {
+          "id": "E13-S04",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want neighborhood-level accessibility maps, so that local improvements and gaps are visible.",
+          "acceptance_criteria": "Maps have population denominators and flag insufficient coverage."
+        },
+        {
+          "id": "E13-S05",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to measure infrastructure space devoted to private cars, so that we can track physical car dependence.",
+          "acceptance_criteria": "Road-space metrics are spatially aggregated without double counting."
+        },
+        {
+          "id": "E13-S06",
+          "priority": "P0",
+          "persona": "accessibility advocate",
+          "story": "As a accessibility advocate, I want equity and mobility-needs breakdowns, so that a high citywide score cannot hide isolated groups.",
+          "acceptance_criteria": "Results report outcomes for relevant user groups and neighborhoods."
+        },
+        {
+          "id": "E13-S07",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want estimated vehicle travel and operational emissions, so that environmental outcomes remain visible.",
+          "acceptance_criteria": "Vehicle distance and emissions methodology are documented with uncertainty."
+        },
+        {
+          "id": "E13-S08",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want a Pareto frontier of costs, accessibility, safety and car dependence, so that we can choose among non-dominated designs.",
+          "acceptance_criteria": "Dominance calculations use consistent constraints and units."
+        },
+        {
+          "id": "E13-S09",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want scenario rankings across multiple weather and service conditions, so that travel flexibility is not limited to ideal days.",
+          "acceptance_criteria": "Metrics include day/night, service frequency and weather sensitivity."
+        },
+        {
+          "id": "E13-S10",
+          "priority": "P2",
+          "persona": "policy analyst",
+          "story": "As a policy analyst, I want separate short- and long-term outcomes, so that infrastructure investment is not conflated with immediate behavior.",
+          "acceptance_criteria": "Time horizon and behavioral assumptions are present in every score."
+        }
+      ]
+    },
+    {
+      "id": "E14",
+      "name": "RL environment and optimization specification",
+      "outcome": "Expose a constrained, inspectable and reproducible RL problem over sequential city redesign.",
+      "dependencies": [
+        "E08",
+        "E10",
+        "E12",
+        "E13"
+      ],
+      "stories": [
+        {
+          "id": "E14-S01",
+          "priority": "P0",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want a Gymnasium-compatible interface to the Rust simulator, so that learning algorithms can use a common environment.",
+          "acceptance_criteria": "reset/step return versioned observations, actions, rewards and terminal flags."
+        },
+        {
+          "id": "E14-S02",
+          "priority": "P0",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want a machine-readable action catalog and feasibility mask, so that the agent cannot choose nonexistent projects.",
+          "acceptance_criteria": "Invalid actions are excluded or rejected with explicit explanations."
+        },
+        {
+          "id": "E14-S03",
+          "priority": "P0",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want an observation encoding of network, demand, budget and accessibility, so that policies receive decision-relevant state.",
+          "acceptance_criteria": "Schema is documented and invariance tests detect accidental data leakage."
+        },
+        {
+          "id": "E14-S04",
+          "priority": "P0",
+          "persona": "research lead",
+          "story": "As a research lead, I want a reward anchored in car independence and mobility parity, so that optimization advances the primary goal.",
+          "acceptance_criteria": "Weights and hard constraints are user-configurable and logged."
+        },
+        {
+          "id": "E14-S05",
+          "priority": "P0",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want sequential episodes with construction and operating budgets, so that ordering matters.",
+          "acceptance_criteria": "Each step updates cumulative network, costs and dependent metrics."
+        },
+        {
+          "id": "E14-S06",
+          "priority": "P1",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want batched Rust-Python bindings, so that training avoids excessive per-step overhead.",
+          "acceptance_criteria": "Batch APIs use bounded memory and have profiling tests."
+        },
+        {
+          "id": "E14-S07",
+          "priority": "P1",
+          "persona": "research lead",
+          "story": "As a research lead, I want reward ablations and failure diagnostics, so that we detect gaming of a single metric.",
+          "acceptance_criteria": "Experiments log decomposed rewards, constraint failures and trivial solutions."
+        },
+        {
+          "id": "E14-S08",
+          "priority": "P2",
+          "persona": "ML engineer",
+          "story": "As a ML engineer, I want graph-based policy observations, so that models can transfer across city topologies.",
+          "acceptance_criteria": "Transfer experiments compare unseen-city results with simpler representations."
+        }
+      ]
+    },
+    {
+      "id": "E15",
+      "name": "Optimization algorithms and benchmarks",
+      "outcome": "Find strong redesign sequences and prove whether RL outperforms simpler search.",
+      "dependencies": [
+        "E14"
+      ],
+      "stories": [
+        {
+          "id": "E15-S01",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want a random-search reference optimizer, so that we have a minimum performance baseline.",
+          "acceptance_criteria": "Fixed-budget runs use identical scenario evaluation and constraints."
+        },
+        {
+          "id": "E15-S02",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want greedy and local-search optimizers, so that RL can be compared against practical alternatives.",
+          "acceptance_criteria": "Algorithms share objective scoring, compute budgets and stopping conditions."
+        },
+        {
+          "id": "E15-S03",
+          "priority": "P0",
+          "persona": "RL engineer",
+          "story": "As a RL engineer, I want a first trainable constrained policy, so that the system can learn a sequence of projects.",
+          "acceptance_criteria": "Checkpoint save/load and deterministic evaluation work."
+        },
+        {
+          "id": "E15-S04",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want an evolutionary or multi-objective optimizer, so that we can explore trade-offs beyond one reward.",
+          "acceptance_criteria": "Output is a feasible non-dominated set using the same simulator."
+        },
+        {
+          "id": "E15-S05",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want held-out maps and demand scenarios, so that we can test generalization.",
+          "acceptance_criteria": "Evaluation data and seeds are isolated from training."
+        },
+        {
+          "id": "E15-S06",
+          "priority": "P1",
+          "persona": "research lead",
+          "story": "As a research lead, I want a fair comparison dashboard, so that we can assess whether RL earns its complexity.",
+          "acceptance_criteria": "Results include objective improvement, validity rate, compute time and variance."
+        },
+        {
+          "id": "E15-S07",
+          "priority": "P2",
+          "persona": "ML engineer",
+          "story": "As a ML engineer, I want warm-start, curriculum or transfer training, so that policies improve across cities.",
+          "acceptance_criteria": "Ablations document benefit over training from scratch."
+        }
+      ]
+    },
+    {
+      "id": "E16",
+      "name": "Experiment orchestration and compute management",
+      "outcome": "Execute large experiments reliably, with transparent costs, reproducibility and interruptibility.",
+      "dependencies": [
+        "E14",
+        "E15"
+      ],
+      "stories": [
+        {
+          "id": "E16-S01",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want to submit a simulation or optimization job, so that I can run work without holding the UI open.",
+          "acceptance_criteria": "Jobs persist with input hashes, parameters, status and result references."
+        },
+        {
+          "id": "E16-S02",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want progress and partial logs, so that I can diagnose long-running experiments.",
+          "acceptance_criteria": "Status shows scenario count, failures and current best metrics."
+        },
+        {
+          "id": "E16-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want to stop and resume jobs where supported, so that compute is not wasted.",
+          "acceptance_criteria": "Cancellation releases resources; resumption uses compatible checkpoints."
+        },
+        {
+          "id": "E16-S04",
+          "priority": "P0",
+          "persona": "operator",
+          "story": "As a operator, I want isolated worker processes with quotas, so that one job cannot exhaust the service.",
+          "acceptance_criteria": "CPU, memory and concurrency limits are enforced."
+        },
+        {
+          "id": "E16-S05",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want seed sweeps and parallel evaluations, so that uncertainty can be evaluated efficiently.",
+          "acceptance_criteria": "Artifacts identify seeds and produce an aggregate distribution."
+        },
+        {
+          "id": "E16-S06",
+          "priority": "P1",
+          "persona": "operator",
+          "story": "As a operator, I want distributed execution on multiple workers, so that metropolitan experiments can scale.",
+          "acceptance_criteria": "Idempotent work items retry safely and do not duplicate finalized results."
+        },
+        {
+          "id": "E16-S07",
+          "priority": "P1",
+          "persona": "operator",
+          "story": "As a operator, I want compute and storage usage reports, so that we can budget expensive runs.",
+          "acceptance_criteria": "Each run reports wall time, resource usage and estimated spend."
+        }
+      ]
+    },
+    {
+      "id": "E17",
+      "name": "Interactive application and spatial editing",
+      "outcome": "Make baseline conditions, redesign tools, and results usable in a responsive map-based web interface.",
+      "dependencies": [
+        "E02",
+        "E10",
+        "E13",
+        "E16"
+      ],
+      "stories": [
+        {
+          "id": "E17-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want a map-based study-area wizard, so that I can select and initialize a city visually.",
+          "acceptance_criteria": "Boundary, dataset availability and initialization feedback are visible."
+        },
+        {
+          "id": "E17-S02",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to switch among road, bike, walking, bus and rail layers, so that I can inspect the multimodal network.",
+          "acceptance_criteria": "Layers have legends and distinguish unknown data from absent infrastructure."
+        },
+        {
+          "id": "E17-S03",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to select connected corridors and propose conversions, so that I can edit a scenario without code.",
+          "acceptance_criteria": "Map selection produces a preview and feasibility warnings."
+        },
+        {
+          "id": "E17-S04",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to edit intervention parameters and budgets, so that I can test realistic variants.",
+          "acceptance_criteria": "Forms validate units and show estimated costs before applying."
+        },
+        {
+          "id": "E17-S05",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to submit and follow scenario runs, so that I can connect edits to results.",
+          "acceptance_criteria": "UI reflects queued, running, failed and completed jobs."
+        },
+        {
+          "id": "E17-S06",
+          "priority": "P0",
+          "persona": "resident",
+          "story": "As a resident, I want before/after travel isochrones and accessibility maps, so that I can see which destinations become car-free reachable.",
+          "acceptance_criteria": "Maps let me choose origin, mode set, time window and metric."
+        },
+        {
+          "id": "E17-S07",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want linked side-by-side map and metric comparisons, so that I can inspect geographic trade-offs.",
+          "acceptance_criteria": "Map extents and legends stay synchronized between variants."
+        },
+        {
+          "id": "E17-S08",
+          "priority": "P1",
+          "persona": "resident",
+          "story": "As a resident, I want a responsive and keyboard-accessible interface, so that the app works across devices and needs.",
+          "acceptance_criteria": "Core flows have keyboard navigation, accessible labels and mobile layouts."
+        },
+        {
+          "id": "E17-S09",
+          "priority": "P2",
+          "persona": "planner",
+          "story": "As a planner, I want an animated sequence of infrastructure phases, so that I can understand how the city evolves.",
+          "acceptance_criteria": "Timeline shows reversible per-phase changes and related outcomes."
+        }
+      ]
+    },
+    {
+      "id": "E18",
+      "name": "Interpretation, explainability and reports",
+      "outcome": "Show why a design was selected and where it helps or harms residents.",
+      "dependencies": [
+        "E13",
+        "E15",
+        "E17"
+      ],
+      "stories": [
+        {
+          "id": "E18-S01",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to compare baseline and scenario results for core metrics, so that I can judge the effect of redesign.",
+          "acceptance_criteria": "Comparisons include differences, units, assumptions and uncertainty status."
+        },
+        {
+          "id": "E18-S02",
+          "priority": "P0",
+          "persona": "planner",
+          "story": "As a planner, I want to inspect effects by neighborhood, so that local regressions are visible.",
+          "acceptance_criteria": "Users can filter maps/tables to an area and see affected trip groups."
+        },
+        {
+          "id": "E18-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want to trace each optimization result to interventions, so that a result is auditable.",
+          "acceptance_criteria": "Every output references scenario version, projects, seeds and model version."
+        },
+        {
+          "id": "E18-S04",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want a step-by-step improvement chart, so that I can understand intervention order.",
+          "acceptance_criteria": "Each step displays incremental and cumulative metric changes."
+        },
+        {
+          "id": "E18-S05",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want sensitivity and robustness comparisons, so that uncertain assumptions are not concealed.",
+          "acceptance_criteria": "Reports show ranges under tested demand, weather and behavior assumptions."
+        },
+        {
+          "id": "E18-S06",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want to view trade-offs across Pareto-optimal scenarios, so that I can select a policy preference explicitly.",
+          "acceptance_criteria": "Changing a priority does not silently overwrite prior scenario results."
+        },
+        {
+          "id": "E18-S07",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want exportable methodology notes and known limitations, so that results are interpreted responsibly.",
+          "acceptance_criteria": "Report records calibration quality, causal limits and models used."
+        }
+      ]
+    },
+    {
+      "id": "E19",
+      "name": "Workspaces, APIs, sharing and export",
+      "outcome": "Persist projects and enable programmatic and collaborative analysis with explicit sharing controls.",
+      "dependencies": [
+        "E01",
+        "E16",
+        "E17",
+        "E18"
+      ],
+      "stories": [
+        {
+          "id": "E19-S01",
+          "priority": "P0",
+          "persona": "user",
+          "story": "As a user, I want a saved project containing city, scenarios and results, so that I can return to my work.",
+          "acceptance_criteria": "Projects reopen against exact versioned inputs and show stale status."
+        },
+        {
+          "id": "E19-S02",
+          "priority": "P0",
+          "persona": "developer",
+          "story": "As a developer, I want a documented Rust API for cities, scenarios, evaluations and jobs, so that tools and agents can automate workflows.",
+          "acceptance_criteria": "Versioned endpoints have OpenAPI schema, validation and error contracts."
+        },
+        {
+          "id": "E19-S03",
+          "priority": "P0",
+          "persona": "researcher",
+          "story": "As a researcher, I want machine-readable scenario and metric exports, so that I can reproduce analysis outside the UI.",
+          "acceptance_criteria": "Exports include JSON/Parquet and a versioned manifest."
+        },
+        {
+          "id": "E19-S04",
+          "priority": "P1",
+          "persona": "team member",
+          "story": "As a team member, I want workspace roles for owner, editor and viewer, so that collaboration is controlled.",
+          "acceptance_criteria": "Authorization tests cover read and write actions."
+        },
+        {
+          "id": "E19-S05",
+          "priority": "P1",
+          "persona": "planner",
+          "story": "As a planner, I want shareable read-only scenario links, so that colleagues can inspect results.",
+          "acceptance_criteria": "Public links reveal only explicitly published data."
+        },
+        {
+          "id": "E19-S06",
+          "priority": "P1",
+          "persona": "researcher",
+          "story": "As a researcher, I want map and report exports, so that I can distribute results without the app.",
+          "acceptance_criteria": "Exports include legend, units, caveats, data attribution and date."
+        },
+        {
+          "id": "E19-S07",
+          "priority": "P2",
+          "persona": "external developer",
+          "story": "As a external developer, I want a stable plugin/connector contract, so that additional datasets and optimizers can be added.",
+          "acceptance_criteria": "Extension manifest and compatibility tests are published."
+        },
+        {
+          "id": "E19-S08",
+          "priority": "P2",
+          "persona": "collaborator",
+          "story": "As a collaborator, I want project comments and review states, so that teams can discuss design trade-offs.",
+          "acceptance_criteria": "Comments reference a scenario revision and survive new revisions."
+        }
+      ]
+    },
+    {
+      "id": "E20",
+      "name": "Scientific verification, reliability, security and release",
+      "outcome": "Deliver a trustworthy, observable and maintainable public-facing system with repeatable scientific claims.",
+      "dependencies": [
+        "E01",
+        "E09",
+        "E12",
+        "E15",
+        "E19"
+      ],
+      "stories": [
+        {
+          "id": "E20-S01",
+          "priority": "P0",
+          "persona": "tester",
+          "story": "As a tester, I want unit and property tests for graph, geometry, units and metrics, so that numeric errors are caught early.",
+          "acceptance_criteria": "CI includes invariants for connectivity, conservation and monotonicity where applicable."
+        },
+        {
+          "id": "E20-S02",
+          "priority": "P0",
+          "persona": "tester",
+          "story": "As a tester, I want full end-to-end tests from city import through scenario scoring, so that the core workflow actually works.",
+          "acceptance_criteria": "A small public fixture runs without manual steps and produces a reproducible result."
+        },
+        {
+          "id": "E20-S03",
+          "priority": "P0",
+          "persona": "research lead",
+          "story": "As a research lead, I want independent detailed-simulator comparison, so that the fast engine has measured error.",
+          "acceptance_criteria": "Representative scenarios are cross-checked with SUMO/MATSim or a vetted equivalent."
+        },
+        {
+          "id": "E20-S04",
+          "priority": "P0",
+          "persona": "operator",
+          "story": "As a operator, I want structured logs, metrics and traces, so that failed data jobs and training runs can be diagnosed.",
+          "acceptance_criteria": "Each job and scenario has correlated identifiers and actionable errors."
+        },
+        {
+          "id": "E20-S05",
+          "priority": "P0",
+          "persona": "operator",
+          "story": "As a operator, I want versioned releases, migrations and backups, so that deployed results remain available.",
+          "acceptance_criteria": "Upgrade and restore rehearsals succeed on a staging dataset."
+        },
+        {
+          "id": "E20-S06",
+          "priority": "P0",
+          "persona": "security engineer",
+          "story": "As a security engineer, I want input validation, secrets management and dependency scanning, so that untrusted imports and APIs do not compromise the system.",
+          "acceptance_criteria": "Threat-model priorities have regression tests and secrets never enter logs."
+        },
+        {
+          "id": "E20-S07",
+          "priority": "P1",
+          "persona": "research lead",
+          "story": "As a research lead, I want uncertainty and model-card documentation, so that users understand forecast limitations.",
+          "acceptance_criteria": "Each release documents assumptions, tested geography and failure modes."
+        },
+        {
+          "id": "E20-S08",
+          "priority": "P1",
+          "persona": "maintainer",
+          "story": "As a maintainer, I want Linux/macOS development and container deployment, so that developers and CI share reproducible execution.",
+          "acceptance_criteria": "Smoke tests pass on the supported environments."
+        },
+        {
+          "id": "E20-S09",
+          "priority": "P1",
+          "persona": "operator",
+          "story": "As a operator, I want load tests with large cities and concurrent experiments, so that performance limits are known.",
+          "acceptance_criteria": "Published baselines cover memory, throughput, API latency and degradation."
+        },
+        {
+          "id": "E20-S10",
+          "priority": "P2",
+          "persona": "community contributor",
+          "story": "As a community contributor, I want public contribution guide, licenses and sample projects, so that the platform can be adopted and improved.",
+          "acceptance_criteria": "A new contributor can reproduce the demo from published instructions."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+[package]
+name = "accessibility"
+version.workspace = true
+edition.workspace = true

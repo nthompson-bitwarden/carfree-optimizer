@@ -1,0 +1,4 @@
+[package]
+name = "mobility-sim"
+version.workspace = true
+edition.workspace = true

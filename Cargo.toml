@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mobility-graph",
+    "crates/accessibility",
+    "crates/interventions",
+    "crates/mobility-sim",
+    "crates/optimizer-env",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
