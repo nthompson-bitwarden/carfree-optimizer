@@ -1,0 +1,4 @@
+[package]
+name = "mobility-graph"
+version.workspace = true
+edition.workspace = true
