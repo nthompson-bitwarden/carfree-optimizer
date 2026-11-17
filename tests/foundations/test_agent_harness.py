@@ -43,6 +43,8 @@ class HarnessAcceptance(unittest.TestCase):
         result = harness.validate(ROOT)
         self.assertEqual(result['status'], 'PASS')
         self.assertEqual(result['profiles'], 10)
+        self.assertEqual(result['configured_primary'], 'gpt-6.2-sol/medium')
+        self.assertEqual(result['configured_verifier'], 'gpt-6-luna/low')
         self.assertEqual(result['runtime_models'], 'NOT OBSERVED')
 
     def test_e01_s03_given_wrong_model_or_broken_discovery_when_validated_then_rejected(self):
@@ -56,6 +58,17 @@ class HarnessAcceptance(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'model policy'):
                 harness.validate(root)
             shutil.copy(ROOT / '.codex/agents/verifier.toml', profile)
+            for name, wrong_effort in (('delivery', 'medium'), ('architect', 'low')):
+                with self.subTest(profile=name):
+                    profile = root / '.codex/agents' / f'{name}.toml'
+                    original = profile.read_text()
+                    expected_effort = 'low' if wrong_effort == 'medium' else 'medium'
+                    profile.write_text(original.replace(
+                        f'model_reasoning_effort = "{expected_effort}"',
+                        f'model_reasoning_effort = "{wrong_effort}"'))
+                    with self.assertRaisesRegex(AssertionError, 'model policy'):
+                        harness.validate(root)
+                    profile.write_text(original)
             (root / '.agents/skills/issue-architecture').unlink()
             with self.assertRaisesRegex(AssertionError, 'discovery symlink'):
                 harness.validate(root)

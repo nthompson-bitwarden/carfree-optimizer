@@ -52,10 +52,10 @@ def candidate(root):
 
 def validate(root):
     config = tomllib.loads((root / '.codex/config.toml').read_text())
-    assert (config['model'], config['model_reasoning_effort']) == ('gpt-6-sol', 'medium'), 'primary model policy'
+    assert (config['model'], config['model_reasoning_effort']) == ('gpt-6.2-sol', 'medium'), 'primary model policy'
     agents = config['agents']
     assert agents['enabled'] is True and agents['max_concurrent_threads_per_session'] == 2, 'worker cap'
-    assert (agents['default_subagent_model'], agents['default_subagent_reasoning_effort']) == ('gpt-6-sol', 'medium'), 'worker defaults'
+    assert (agents['default_subagent_model'], agents['default_subagent_reasoning_effort']) == ('gpt-6.2-sol', 'medium'), 'worker defaults'
     names = set()
     for path in sorted((root / '.codex/agents').glob('*.toml')):
         data = tomllib.loads(path.read_text())
@@ -64,7 +64,9 @@ def validate(root):
         names.add(name)
         for key in ('description', 'developer_instructions'):
             assert isinstance(data[key], str) and data[key].strip(), f'{path}: {key}'
-        expected = ('gpt-6-luna', 'low') if name == 'verifier' else ('gpt-6-sol', 'medium')
+        expected = (('gpt-6-luna', 'low') if name == 'verifier'
+                    else ('gpt-6.2-sol', 'low') if name in {'delivery', 'orchestrator', 'technical_documentor'}
+                    else ('gpt-6.2-sol', 'medium'))
         assert (data['model'], data['model_reasoning_effort']) == expected, f'{path}: model policy'
         words = data['developer_instructions'].split()
         links = [word.rstrip(';.,') for word in words if word.startswith('.codex/skills/')]
@@ -91,7 +93,7 @@ def validate(root):
         assert value in delivery, f'delivery safeguard: {value}'
     for value in ('Never silently disconnect', 'Do not invent observed', 'uncertainty', 'unable to cycle'):
         assert value in guide, f'scientific safeguard: {value}'
-    return {'status': 'PASS', 'profiles': len(names), 'configured_primary': 'gpt-6-sol/medium',
+    return {'status': 'PASS', 'profiles': len(names), 'configured_primary': 'gpt-6.2-sol/medium',
             'configured_verifier': 'gpt-6-luna/low', 'runtime_models': 'NOT OBSERVED'}
 
 

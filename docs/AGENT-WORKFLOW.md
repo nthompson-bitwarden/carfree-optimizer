@@ -46,9 +46,11 @@ agent gate evidence in private handoffs. Never publish configured email addresse
 
 ## Context and models
 
-Fresh sessions use `gpt-6-sol` / `medium` for the primary and judgment-heavy
-profiles; mechanical `verifier` uses `gpt-6-luna` / `low`. Every optional profile
-sets model and effort explicitly. No automatic escalation: an unavailable model
+Fresh sessions use `gpt-6.2-sol` / `medium` for the primary, fallback workers,
+`architect`, `code_reviewer`, `test_author`, and Python, Rust, and web implementors.
+The bounded `delivery`, `orchestrator`, and `technical_documentor` profiles use
+`gpt-6.2-sol` / `low`; mechanical `verifier` uses `gpt-6-luna` / `low`. Every optional
+profile sets model and effort explicitly. No automatic escalation: an unavailable model
 is an explicit limitation and blocks its dependent gate until resolved within user
 scope. Configuration is not evidence of the active conversation's runtime model.
 
