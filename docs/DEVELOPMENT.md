@@ -40,12 +40,12 @@ inspect another manifest, use
 External dependencies require reviewed ADR/benchmark rationale and an explicit
 policy change. This is a source policy, not a vulnerability database audit.
 
-The `Rust CI` matrix targets `ubuntu-24.04` and `macos-15`, with Python 3.12 and
+The `Rust CI` job targets `ubuntu-24.04`, with Python 3.12 and
 the Rust repository pin. Main/`codex/**` pushes, pull requests, and manual dispatch
 run bootstrap, formatting, clippy, workspace tests, dependency policy, and the
-foundation suite. Matrix configuration alone does not prove either platform
-passed: delivery evidence must identify the actual candidate SHA and runner
-results. Candidate branch pushes can collect that evidence before a ready PR.
+foundation suite. Workflow configuration alone does not prove the job passed:
+delivery evidence must identify the actual candidate SHA and runner result.
+Candidate branch pushes can collect that evidence before a ready PR.
 
 For a human-reviewable developer demo, run bootstrap and then the two benchmark
 commands in [BENCHMARKS.md](BENCHMARKS.md). No UI or running application is
