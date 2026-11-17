@@ -18,13 +18,19 @@ Car independence means residents can complete representative daily trip chains *
 
 ## Technical boundaries
 
+These are ownership boundaries, not a claim that the planned pipeline is
+implemented. [Module contracts](MODULE-CONTRACTS.md) list the current public
+surface, tests, and restrictions for each crate (E01-S01/E01-S03).
+
+- `mobility-ingest`: source-adapter boundary; no adapters or ingest operations yet.
 - `mobility-graph`: domain graph and mode concepts; does not depend on RL.
+- `mobility-routing`: routing boundary depending on graph types; no router yet.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
 - `interventions`: validated descriptions of candidate changes; no hidden mutation.
 - `mobility-sim`: candidate scenario evaluation interface and eventually native fast simulator.
 - `optimizer-env`: Markov decision process contracts and action feasibility; objective policies interchangeable.
-- PyO3 bridge (future): batches Rust transitions into the training runtime; avoid per-trip FFI chatter.
-- Axum API (future): initiates reproducible experiments and serves map/data assets.
+- `optimizer-bridge`: boundary depending on `optimizer-env`; future bindings batch Rust transitions into the training runtime, avoiding per-trip FFI chatter. No bindings yet.
+- `mobility-api`: future service boundary for reproducible experiments and versioned results. No HTTP server or endpoints yet; Axum remains proposed.
 - Svelte frontend (future): interfaces with API and MapLibre; no authoritative model calculation in browser.
 
 ## Scientific safeguards
@@ -39,3 +45,9 @@ Car independence means residents can complete representative daily trip chains *
 ## Performance benchmark plan
 
 Record time and peak memory for: import, network build, multimodal OD queries, scenario apply/reset, scenario evaluation, parallel simulation scale-out, and RL end-to-end training throughput. Measure fidelity as well as speed.
+
+The implemented [benchmark harness](BENCHMARKS.md) measures only
+`accessibility::reachable_share` on a versioned synthetic count fixture. It does
+not measure the planned pipeline or peak memory. [ADR 0001](adr/0001-rust-first-hybrid-rl.md)
+keeps simulator, RL, and application framework selections proposed until the
+relevant benchmark and independent validation evidence exists.
