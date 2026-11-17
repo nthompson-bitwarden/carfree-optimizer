@@ -6,6 +6,11 @@ members = [
     "crates/interventions",
     "crates/mobility-sim",
     "crates/optimizer-env",
+    "crates/mobility-ingest",
+    "crates/mobility-routing",
+    "crates/optimizer-bridge",
+    "crates/mobility-api",
+    "benchmarks/harness",
 ]
 
 [workspace.package]

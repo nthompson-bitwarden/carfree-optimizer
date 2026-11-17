@@ -46,25 +46,38 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 
 ```text
 crates/mobility-graph     shared network domain types
+crates/mobility-ingest    source-adapter boundary (not implemented)
+crates/mobility-routing   routing boundary (not implemented)
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
 crates/mobility-sim      simulation interfaces (not yet implemented)
 crates/optimizer-env     planning environment interfaces
+crates/optimizer-bridge  training bindings boundary (not implemented)
+crates/mobility-api      application service boundary (not implemented)
+benchmarks/             synthetic metric fixture, Rust harness, measured history
 training/                future PyTorch training integration
 web/                     future Svelte/MapLibre app
 backlog/                 full prioritized user stories
 docs/                    architecture and decisions
 ```
 
-After installing Rust:
+Install rustup and Python 3.11 or newer, then run:
 
 ```sh
-cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+./scripts/bootstrap.sh
 ```
 
-No external input downloads or running applications have been wired up yet.
+Bootstrap checks the pinned Rust tools, enforces the current local-only dependency
+policy, and runs the locked, offline workspace smoke test. It also works when
+invoked by absolute path from another directory. See [development and validation](docs/DEVELOPMENT.md)
+for the full quality gates and [benchmark usage](docs/BENCHMARKS.md) for measured
+primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
+identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
+
+No external input downloads, route computation, HTTP service, simulator, or Python
+bindings have been wired up yet. The benchmark is a developer demonstration of an
+existing metric primitive; it provides no planning predictions.
 
 ## Agent-assisted issue delivery
 
@@ -76,7 +89,7 @@ and issue-linked PR delivery. Start a fresh Codex session and use
 
 ## Publish to GitHub
 
-The GitHub repository is [nthompson-bitwarden/carfree-optimizer](https://github.com/nthompson-bitwarden/carfree-optimizer). Push subsequent commits with `git push origin main`.
+The GitHub repository is [nthompson-bitwarden/carfree-optimizer](https://github.com/nthompson-bitwarden/carfree-optimizer). Deliver issue changes on a scoped branch through the signed-commit and pull-request gates in the [issue workflow](docs/AGENT-WORKFLOW.md).
 
 For initial publication only, `./scripts/publish.sh` creates **a private repository** called `nthompson-bitwarden/carfree-optimizer` using the GitHub CLI, which you must authenticate on your machine. Inspect the script before running.
 
