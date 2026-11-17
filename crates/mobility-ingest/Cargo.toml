@@ -1,0 +1,4 @@
+[package]
+name = "mobility-ingest"
+version.workspace = true
+edition.workspace = true

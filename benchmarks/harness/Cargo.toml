@@ -1,0 +1,8 @@
+[package]
+name = "foundations-benchmark"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+accessibility = { path = "../../crates/accessibility" }

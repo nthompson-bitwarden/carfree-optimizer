@@ -1,0 +1,4 @@
+[package]
+name = "mobility-api"
+version.workspace = true
+edition.workspace = true

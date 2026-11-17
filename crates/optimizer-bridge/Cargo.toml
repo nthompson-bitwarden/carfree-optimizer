@@ -1,0 +1,7 @@
+[package]
+name = "optimizer-bridge"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+optimizer-env = { path = "../optimizer-env" }
