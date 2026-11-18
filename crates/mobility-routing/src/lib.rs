@@ -90,6 +90,7 @@ struct State {
     run: Option<Run>,
     /// Boarding facility must still be open at the actual vehicle departure.
     boarding_window: Option<(i64, i64)>,
+    ridden_transit: bool,
     vehicle: Option<Vehicle>,
 }
 struct Label {
@@ -148,6 +149,57 @@ fn invalid(message: &str) -> RoutingError {
 /// `max_states` bounds memory. Later departures are retained (including overtaking).
 /// Capacity is an input attribute, not a congestion/travel-time prediction.
 pub fn earliest_arrival(network: &Network, request: &Request) -> Result<Outcome, RoutingError> {
+    search(network, request, false, None)
+}
+
+/// Earliest arrival after at least one scheduled/frequency ride and explicit
+/// alighting. Only walking-access transit is supported by this entry point.
+/// Callers must still supply actual door endpoints, not substitute nearby stops.
+pub fn earliest_transit_arrival(
+    network: &Network,
+    request: &Request,
+) -> Result<Outcome, RoutingError> {
+    if request.initial_mode != Mode::Walk || request.vehicle.is_some() {
+        return Err(invalid(
+            "transit-only choice requires walking access without a personal vehicle",
+        ));
+    }
+    search(network, request, true, None)
+}
+
+/// Continue driving from a stop while retaining the car's last approach edge.
+/// The edge must be an unblocked car link into the request origin.
+pub fn earliest_car_arrival_with_approach(
+    network: &Network,
+    request: &Request,
+    approach: EdgeId,
+) -> Result<Outcome, RoutingError> {
+    if request.initial_mode != Mode::Car
+        || !network.link(approach).is_some_and(|link| {
+            link.to == request.from
+                && matches!(
+                    link.kind,
+                    LinkKind::Street {
+                        mode: Mode::Car,
+                        blocked: false,
+                        ..
+                    }
+                )
+        })
+    {
+        return Err(invalid(
+            "car approach must be an open car link into the origin",
+        ));
+    }
+    search(network, request, false, Some(approach))
+}
+
+fn search(
+    network: &Network,
+    request: &Request,
+    require_transit: bool,
+    car_approach: Option<EdgeId>,
+) -> Result<Outcome, RoutingError> {
     let d = network.data();
     if network.node(request.from).is_none() || network.node(request.to).is_none() {
         return Err(invalid("unknown endpoint"));
@@ -188,10 +240,11 @@ pub fn earliest_arrival(network: &Network, request: &Request) -> Result<Outcome,
         incoming: None,
         run: None,
         boarding_window: None,
+        ridden_transit: false,
         vehicle: request.vehicle.map(|mode| Vehicle {
             mode,
             parked: None,
-            road_incoming: None,
+            road_incoming: car_approach,
         }),
     };
     let mut labels = vec![Label {
@@ -212,7 +265,9 @@ pub fn earliest_arrival(network: &Network, request: &Request) -> Result<Outcome,
         if !accessible(node.access, &request.profile) {
             continue;
         }
-        if state.node == request.to {
+        if state.node == request.to
+            && (!require_transit || (state.ridden_transit && state.mode == Mode::Walk))
+        {
             let mut steps = Vec::new();
             let mut cursor = index;
             while let Some((prev, step)) = &labels[cursor].previous {
@@ -425,6 +480,7 @@ pub fn earliest_arrival(network: &Network, request: &Request) -> Result<Outcome,
                             next.node = link.to;
                             next.incoming = Some(link.id);
                             next.boarding_window = None;
+                            next.ridden_transit = require_transit;
                             next.run = Some(Run {
                                 trip: trip.clone(),
                                 service_date: day.date,

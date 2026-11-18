@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Source-to-network adapters, production routing, simulation and calibration remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Source-to-network adapters, production routing, calibrated simulation and policy evaluation remain future work.
 
 ## Principles
 
@@ -50,7 +50,7 @@ crates/mobility-ingest    geography, project snapshots and offline public-data c
 crates/mobility-routing   bounded time-aware reference routing
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
-crates/mobility-sim      simulation interfaces (not yet implemented)
+crates/mobility-sim      demand, synthetic travelers and reference tour feasibility
 crates/optimizer-env     planning environment interfaces
 crates/optimizer-bridge  training bindings boundary (not implemented)
 crates/mobility-api      offline search/onboarding CLIs and static HTML reports
@@ -77,8 +77,8 @@ primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
 identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
 
 No runtime external input downloads, source-to-routing-network adapter, HTTP
-service, simulator or Python bindings have been wired up. Synthetic reference
-routing and primitive benchmarks provide no planning predictions.
+service, calibrated simulator or Python bindings have been wired up. Synthetic
+reference evaluation and benchmarks provide no planning predictions.
 
 ## City and metropolitan area search
 
@@ -152,6 +152,20 @@ for acceptance tests, benchmark reproduction and limitations. The caller must
 supply validated transport attributes and complete service coverage; E04's
 screened topology is not automatically a routable network. Feasible paths do
 not establish real-world car independence.
+
+## Travel demand and traveler diversity
+
+E06 evaluates time-specific trips and return tours across five modes, with
+explicit mobility constraints, load limits, schedule waits and scenario
+assumptions. Run the synthetic example:
+
+```sh
+cargo run --offline --locked -p mobility-sim --example e06_demand
+```
+
+See the [demand contract](docs/TRAVEL-DEMAND.md) for inputs, generalized cost,
+population reconciliation, essential-trip shortfall and separate long-horizon
+sensitivity. Results apply only to supplied departures and assumptions.
 
 ## Agent-assisted issue delivery
 

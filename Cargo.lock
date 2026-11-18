@@ -570,6 +570,10 @@ dependencies = [
 [[package]]
 name = "mobility-sim"
 version = "0.1.0"
+dependencies = [
+ "mobility-graph",
+ "mobility-routing",
+]
 
 [[package]]
 name = "multimap"

@@ -158,9 +158,15 @@ arrival at that graph node (possibly aboard transit); require an explicit alight
 and a separate street-access destination when evaluating a door-to-door trip.
 Equal origin/destination is a valid zero-step journey only if that node is usable.
 
+E06 adds two opt-in entry points without changing `earliest_arrival`:
+`earliest_transit_arrival` requires a transit ride and arrival in walk mode after
+alighting; `earliest_car_arrival_with_approach` seeds the car's last incoming
+edge for turn rules at a tour stop. See [travel demand](TRAVEL-DEMAND.md).
+
 The reference engine uses time-expanded Dijkstra labels keyed by exact UTC second,
 node, current mode, incoming edge, run/stop index, pending boarding window, and
-carried/parked vehicle state (including car approach history).
+carried/parked vehicle state (including car approach history). The transit-only
+search additionally keys on whether a ride has occurred.
 It does not assume that one node's earliest arrival dominates every later arrival.
 Transitions enumerate scheduled/frequency runs and transfer windows lazily;
 no per-second waiting graph is allocated. Fixed input gives stable ID-order

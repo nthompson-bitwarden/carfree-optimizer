@@ -27,7 +27,7 @@ surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 - `mobility-routing`: bounded deterministic time-aware reference routing over caller-supplied validated graph inputs (E05). Production door-to-door routing remains E07.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
 - `interventions`: validated descriptions of candidate changes; no hidden mutation.
-- `mobility-sim`: candidate scenario evaluation interface and eventually native fast simulator.
+- `mobility-sim`: scenario evaluation interface plus E06 travel demand and conditional tour feasibility; calibrated simulation remains future work.
 - `optimizer-env`: Markov decision process contracts and action feasibility; objective policies interchangeable.
 - `optimizer-bridge`: boundary depending on `optimizer-env`; future bindings batch Rust transitions into the training runtime, avoiding per-trip FFI chatter. No bindings yet.
 - `mobility-api`: accessible HTML/SVG search and project reports, offline `city-search` and `study-area` CLIs, local file persistence and per-project batch orchestration using `mobility-ingest` (E02). Future service boundary for reproducible experiments and versioned results. No HTTP server or endpoints yet; Axum remains proposed.
@@ -71,6 +71,12 @@ dependencies; no ingestion adapter automatically promotes screened topology to
 this contract. Service-day UTC origins and complete coverage are caller
 obligations, following E04's documented timezone convention. Synthetic fixtures
 and developer benchmarks do not establish observed accessibility or calibration.
+
+The [E06 demand contract](TRAVEL-DEMAND.md) layers population reconciliation,
+weighted demand, traveler constraints, cost-based comparisons and explicit
+scenario sensitivities on the reference router. It evaluates supplied
+itineraries and selected departures, not a calibrated regional baseline or
+an optimization reward. Long-horizon sensitivity is reported separately.
 
 ## Scientific safeguards
 
