@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Source-to-network adapters, production routing, calibrated simulation and policy evaluation remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Door-node routing with cycling comfort, joint multi-stop search, revision-pinned OD batches and departure-window statistics is available for caller-supplied networks. Source-to-network adapters, metro-scale routing validation, calibrated simulation and policy evaluation remain future work.
 
 ## Principles
 
@@ -47,7 +47,7 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 ```text
 crates/mobility-graph     validated multimodal network and canonical binary schema
 crates/mobility-ingest    geography, project snapshots and offline public-data connectors
-crates/mobility-routing   bounded time-aware reference routing
+crates/mobility-routing   time-aware door-node planning, batches and window statistics
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
 crates/mobility-sim      demand, synthetic travelers and reference tour feasibility
@@ -152,6 +152,20 @@ for acceptance tests, benchmark reproduction and limitations. The caller must
 supply validated transport attributes and complete service coverage; E04's
 screened topology is not automatically a routable network. Feasible paths do
 not establish real-world car independence.
+
+## Door-node routing and travel flexibility
+
+E07 adds inspectable access/wait/ride/transfer/egress times, cycling comfort costs,
+ordered stops with dwell and transfer constraints, immutable OD batches and
+conditional departure-window percentiles with explicit no-route fractions.
+
+```sh
+rustup run 1.97.1 cargo run --offline --locked -p mobility-routing --example e07_routing
+```
+
+See the [routing API, acceptance tests and per-size performance measurements](docs/ROUTING.md).
+Callers must supply actual routable door nodes and complete service coverage;
+synthetic fixtures and feasible routes do not prove real-world car independence.
 
 ## Travel demand and traveler diversity
 
