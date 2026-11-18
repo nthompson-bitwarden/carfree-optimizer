@@ -1,5 +1,5 @@
 //! E02 study-area onboarding. Geometry is degrees; envelope distances are km.
-mod geometry;
+pub(crate) mod geometry;
 mod project;
 use crate::{Catalogue, Coordinate, Geography};
 pub use project::*;

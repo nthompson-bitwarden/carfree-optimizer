@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion is available. Routing, simulation, and calibration remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. Routing, simulation, and calibration remain future work.
 
 ## Principles
 
@@ -135,6 +135,7 @@ cargo run --locked -p mobility-ingest --bin ingest-data -- preview fixtures/inge
 ```
 
 See the [data formats, licensing inventory and upload workflow](docs/PUBLIC-DATA-INGESTION.md).
+For the next step, run the [normalization and quality dashboard demo](docs/GEOSPATIAL-NORMALIZATION.md), which also shows how to replay a snapshot from its archived inputs.
 
 ## Agent-assisted issue delivery
 

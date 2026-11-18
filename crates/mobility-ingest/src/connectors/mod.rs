@@ -8,6 +8,7 @@ mod tables;
 mod upload;
 
 pub use census::{CensusLevel, LodesSegment};
+pub mod normalization;
 pub use upload::{
     apply_upload, load_upload, rollback_upload, FieldMapping, FieldType, Mapping, UploadFormat,
 };

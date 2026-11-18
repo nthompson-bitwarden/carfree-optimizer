@@ -1,0 +1,5 @@
+station,lon,lat,timestamp,duration_seconds,metric,value,unit,quality
+a,-122,45,2026-03-08T01:00:00-08:00,60,speed,10,mph,synthetic
+a,-122,45,2026-03-08T01:01:00-08:00,60,count,0,vehicles,synthetic
+a,-122,45,2026-03-08T01:02:00-08:00,60,speed,198,km/h,synthetic
+a,-122,45,2026-03-08T01:03:00-08:00,60,speed,200,km/h,synthetic

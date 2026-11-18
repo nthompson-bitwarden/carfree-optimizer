@@ -65,7 +65,7 @@ fn inside(p: Coordinate, r: &[Coordinate]) -> Option<bool> {
     }
     Some(hit)
 }
-pub(super) fn validate(rings: &[Vec<Coordinate>]) -> Result<(), OnboardingError> {
+pub(crate) fn validate(rings: &[Vec<Coordinate>]) -> Result<(), OnboardingError> {
     if rings.iter().map(Vec::len).sum::<usize>() > 10_000 {
         return Err(err("at most 10000 polygon vertices are supported"));
     }

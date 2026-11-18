@@ -1,0 +1,4 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type
+a,First,45,-122,00
+b,Second,45,-121.9998,0
+c,Isolated,45.001,-122,0

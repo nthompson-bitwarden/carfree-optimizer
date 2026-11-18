@@ -4,6 +4,10 @@ E01-S01 and E01-S03 define nine domain crates at version 0.1.0. Existing public
 Rust APIs are preserved by the foundations work. E02-S01 adds the versioned
 [geography catalogue schema and Rust search/presentation APIs](GEOGRAPHY-SEARCH.md).
 E02-S02–S06 add the [study-area/project schema and onboarding APIs](STUDY-AREA-ONBOARDING.md).
+E04 adds [`mobility_ingest::connectors::normalization`](GEOSPATIAL-NORMALIZATION.md)
+for QA, archival and replay, and `mobility_api::quality` for presentation only.
+The recipe and snapshot use schema v1, separate from existing project and import
+schemas. No routing, simulation or graph contracts change.
 No network protocol exists yet. Future responsibilities below remain proposed
 where explicitly stated. Shared-contract changes need architecture
 review and serialized edits before dependent implementations change.

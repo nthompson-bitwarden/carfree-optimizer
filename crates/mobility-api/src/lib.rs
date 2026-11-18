@@ -2,4 +2,5 @@
 pub mod geography;
 pub use geography::render_search_results;
 
+pub mod quality;
 pub mod study_area;
