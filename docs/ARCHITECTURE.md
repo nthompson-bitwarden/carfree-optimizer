@@ -23,8 +23,8 @@ implemented. [Module contracts](MODULE-CONTRACTS.md) list the current public
 surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 
 - `mobility-ingest`: canonical geography catalogue and deterministic search (E02-S01); validated study-area topology, dataset coverage/import contracts, dated project snapshots and scenario baseline references (E02-S02–S06). E03 adds offline data connectors with a shared provenance and validation envelope and an isolated custom-upload sidecar.
-- `mobility-graph`: domain graph and mode concepts; does not depend on RL.
-- `mobility-routing`: routing boundary depending on graph types; no router yet.
+- `mobility-graph`: immutable validated directed multimodal network, explicit service/transfer/access contracts and canonical binary v1 (E05); does not depend on RL.
+- `mobility-routing`: bounded deterministic time-aware reference routing over caller-supplied validated graph inputs (E05). Production door-to-door routing remains E07.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
 - `interventions`: validated descriptions of candidate changes; no hidden mutation.
 - `mobility-sim`: candidate scenario evaluation interface and eventually native fast simulator.
@@ -61,6 +61,16 @@ quality-screening step after ingestion. It produces a candidate topology,
 pedestrian stop attachments, QA findings and an immutable replay manifest;
 `mobility-api` renders the report without calculating scores. This is not a
 simulation-ready multimodal graph or demand model.
+
+The [E05 multimodal network contract](MULTIMODAL-NETWORK.md) adds per-mode
+permissions, car turn rules/capacity, scheduled and phase-assumed frequency
+service, explicit vehicle-aware transfers and mobility constraints. Its bounded
+time-expanded reference router distinguishes unmet deadlines from invalid inputs
+and resource exhaustion. Graph and routing use only standard-library/local crate
+dependencies; no ingestion adapter automatically promotes screened topology to
+this contract. Service-day UTC origins and complete coverage are caller
+obligations, following E04's documented timezone convention. Synthetic fixtures
+and developer benchmarks do not establish observed accessibility or calibration.
 
 ## Scientific safeguards
 
