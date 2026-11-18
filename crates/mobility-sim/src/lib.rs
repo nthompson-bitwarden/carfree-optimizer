@@ -1,6 +1,7 @@
 //! Scenario evaluation contract. A calibrated simulator must be implemented
 //! before providing predictions or optimization rewards.
 
+pub mod calibration;
 pub mod demand;
 pub mod simulation;
 
