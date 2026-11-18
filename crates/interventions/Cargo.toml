@@ -5,3 +5,5 @@ edition.workspace = true
 
 [dependencies]
 mobility-graph = { path = "../mobility-graph" }
+mobility-routing = { path = "../mobility-routing" }
+mobility-sim = { path = "../mobility-sim" }

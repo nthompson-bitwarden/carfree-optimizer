@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Door-node routing with cycling comfort, joint multi-stop search, revision-pinned OD batches and departure-window statistics is available for caller-supplied networks. A bounded reference simulator supports immutable scenario edits, entry-period road feedback, finite transit-capacity bounds, parallel batches and sensitivity distributions (E08). Calibration comparisons, fit-only parameter grids, separate holdout scores and limitation-bearing HTML/TSV reports are available for caller-supplied evidence (E09). Source-to-network adapters, metro-scale routing validation, empirically calibrated simulation and policy evaluation remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Door-node routing with cycling comfort, joint multi-stop search, revision-pinned OD batches and departure-window statistics is available for caller-supplied networks. A bounded reference simulator supports immutable scenario edits, entry-period road feedback, finite transit-capacity bounds, parallel batches and sensitivity distributions (E08). Calibration comparisons, fit-only parameter grids, separate holdout scores and limitation-bearing HTML/TSV reports are available for caller-supplied evidence (E09). Atomic in-memory infrastructure scenarios support conserved lane allocation, explicit crossings and access requirements, exact version undo/redo and separate land-use inputs (E10). Source-to-network adapters, metro-scale routing validation, empirically calibrated simulation and policy evaluation remain future work.
 
 ## Principles
 
@@ -49,7 +49,7 @@ crates/mobility-graph     validated multimodal network and canonical binary sche
 crates/mobility-ingest    geography, project snapshots and offline public-data connectors
 crates/mobility-routing   time-aware door-node planning, batches and window statistics
 crates/accessibility     access and parity metric primitives
-crates/interventions     candidate infrastructure change types
+crates/interventions     atomic infrastructure scenarios, access checks and version history
 crates/mobility-sim      demand, simulation, sensitivity and calibration/holdout reports
 crates/optimizer-env     planning environment interfaces
 crates/optimizer-bridge  training bindings boundary (not implemented)
@@ -79,6 +79,22 @@ identify ownership, APIs, tests, and prohibited changes for all nine domain crat
 No runtime external input downloads, source-to-routing-network adapter, HTTP
 service, calibrated simulator or Python bindings have been wired up. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
+
+## Infrastructure scenarios
+
+[E10 scenario authoring](docs/INFRASTRUCTURE-SCENARIOS.md) supports protected bike
+and bus lanes, continuous walking links, profile-aware corridor previews,
+permission-aware closure checks, exact undo/redo and separately versioned
+modeled destinations. The explicit E08 bridge rejects double-counted road
+capacity and stale scenario/demand bindings.
+
+```sh
+rustup run 1.97.1 cargo run --locked --offline -p interventions --example e10_scenarios
+```
+
+This text demonstration uses arbitrary synthetic inputs. Physical feasibility,
+costs, comprehensive regional access and calibrated effects require independent
+validation; there is no web editor or automatic land-use demand generation.
 
 ## Reference simulation
 
