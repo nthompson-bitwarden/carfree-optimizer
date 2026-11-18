@@ -1,6 +1,8 @@
 //! Scenario evaluation contract. A calibrated simulator must be implemented
 //! before providing predictions or optimization rewards.
 
+pub mod demand;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioMetrics {
     pub car_free_accessible_trip_share: f64,
