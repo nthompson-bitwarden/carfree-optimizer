@@ -177,19 +177,19 @@ fn calendar(feed: &mut Feed<'_>) -> Result<Ids> {
     Ok(weekly)
 }
 
+pub(super) fn location_type(value: Option<&str>) -> Result<u8> {
+    match value.filter(|v| !v.is_empty()).unwrap_or("0").parse::<u8>() {
+        Ok(kind @ 0..=4) => Ok(kind),
+        _ => Err(Error::new("unknown location_type; expected integer 0–4")),
+    }
+}
+
 fn stops(feed: &mut Feed<'_>) -> Result<Stops> {
     let mut stops = Stops::new();
     let mut parent_links = Vec::new();
     feed.table("stops.txt", true, &["stop_id"], |row| {
         let id = field(row, "stop_id")?;
-        let kind = if optional(row, "location_type") {
-            number::<u8>(row, "location_type")?
-        } else {
-            0
-        };
-        if kind > 4 {
-            return Err(Error::new("unknown location_type"));
-        }
+        let kind = location_type(row.get("location_type").map(String::as_str))?;
         if kind <= 2 || optional(row, "stop_lat") || optional(row, "stop_lon") {
             coordinates(number(row, "stop_lon")?, number(row, "stop_lat")?)?;
         }

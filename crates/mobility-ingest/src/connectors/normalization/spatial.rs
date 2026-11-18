@@ -366,7 +366,7 @@ pub(super) fn stops(
     let mut output = vec![];
     for row in rows {
         let f = &row["fields"];
-        if !matches!(f["location_type"].as_str(), None | Some("" | "0")) {
+        if super::super::gtfs::location_type(f["location_type"].as_str())? != 0 {
             continue;
         }
         let id = f["stop_id"]

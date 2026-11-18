@@ -141,3 +141,69 @@ fn e04_s04_and_s06_given_zero_missing_and_rejected_when_replayed_then_coverage_a
         .contains("immutable object conflict"));
     assert!(load(store.path(), "../../not-a-digest").is_err());
 }
+
+#[test]
+fn e04_s03_s04_rejected_dependencies_leave_a_report_and_defer_reviews() {
+    for (path, content, rejected) in [
+        ("streets.osm", "<osm/>", "osm"),
+        (
+            "feed/agency.txt",
+            "agency_name,agency_url,agency_timezone\nTest,https://example.test,Unknown/Zone\n",
+            "gtfs",
+        ),
+        ("feed/stops.txt", "stop_id\na\n", "gtfs"),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let store = tempfile::tempdir().unwrap();
+        fs::create_dir(dir.path().join("feed")).unwrap();
+        for raw in [
+            "streets.osm",
+            "counts.csv",
+            "bad.geojson",
+            "feed/agency.txt",
+            "feed/routes.txt",
+            "feed/trips.txt",
+            "feed/calendar_dates.txt",
+            "feed/stops.txt",
+            "feed/stop_times.txt",
+        ] {
+            fs::copy(fixtures().join(raw), dir.path().join(raw)).unwrap();
+        }
+        fs::write(dir.path().join(path), content).unwrap();
+        let id = build(recipe(), dir.path(), store.path()).unwrap();
+        let snap = load(store.path(), &id).unwrap();
+        assert_eq!(snap.quality[rejected].rejected_regions, ["pilot"]);
+        assert!(snap.layers[1]
+            .findings
+            .iter()
+            .any(|f| f.code == "stop_fix_unevaluated"));
+        if rejected == "osm" {
+            assert!(snap.layers[1].normalized["stop_access"][1]["target"].is_null());
+        }
+        rebuild(store.path(), &id).unwrap();
+    }
+}
+
+#[test]
+fn e04_s01_s04_in_range_self_intersecting_polygon_is_not_screened() {
+    let root = tempfile::tempdir().unwrap();
+    let store = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("bad.geojson"), r#"{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[0,0],[3,3],[0,2],[2,0],[0,0]]]},"properties":{}}]}"#).unwrap();
+    let mut r = recipe();
+    r.inputs.retain(|e| {
+        matches!(
+            e.request.input,
+            mobility_ingest::connectors::Input::Places { .. }
+        )
+    });
+    r.walk_entries.clear();
+    r.stop_fixes.clear();
+    let id = build(r, root.path(), store.path()).unwrap();
+    let snap = load(store.path(), &id).unwrap();
+    assert!(
+        snap.layers[0].source.is_valid(),
+        "E03 accepted the closed ring"
+    );
+    assert_eq!(snap.layers[0].findings[0].code, "invalid_polygon");
+    assert_eq!(snap.quality["places"].rejected_regions, ["pilot"]);
+}

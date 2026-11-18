@@ -34,8 +34,10 @@ kind and region, and topology does not join networks across partitions. Region
 IDs are user-defined import partitions, **not** geographic boundaries. The
 recipe author is responsible for geographic attribution and using consistent
 region IDs and vintages. An absent input is missing, a failed E03 or timezone
-validation is rejected, and a successful partition with findings is marked for
-review. File/archive I/O and recipe errors fail the command instead of producing
+or polygon topology validation is rejected, and a successful partition with
+findings is marked for review. If a supplied OSM or GTFS partition is rejected,
+its diagnostics remain visible and dependent walk entries or fixes are reported
+as unevaluated rather than applied. File/archive I/O and recipe errors fail the command instead of producing
 a snapshot. A successful command means the **report** was created, not that its
 data passed validation or is usable for routing.
 
@@ -47,6 +49,13 @@ data passed validation or is usable for routing.
 | #44 / E04-S04 | Completeness is the fraction of expected regions with successfully normalized inputs. Uncertainty is the fraction missing, rejected or marked for review. Confidence tiers are `unavailable` (no normalized partitions), `screened` (all present and no findings), `review_required` (everything else). These scores are operational indicators, not statistical confidence, observed coverage within polygons, or calibration. Counts are findings, not distinct invalid records. The HTML exposes missing, rejected and review regions, finding details, attribution, and the snapshot reference. |
 | #45 / E04-S05 | Review OSM posted speed if unsupported or outside (0, 55] m/s, DOT observed speed outside [0, 55] m/s, and tagged lanes outside integer 1–12. OSM numeric default is km/h; explicit `mph` and `km/h` also parse. Connectivity findings are advisory except physically degenerate segments, which are excluded from the candidate topology only. Thresholds are screening heuristics, not local regulations. Findings reference a source row or entity; source values are never overwritten and missing values are never invented. |
 | #46 / E04-S06 | Parse staged copies of exact archived bytes. `raw/<sha256>` contains each unique raw file; `snapshots/<sha256>.json` contains the versioned recipe, manifest (input index, relative path, byte count and raw SHA-256), all connector candidates, derived data, findings and quality. GTFS includes all consumed tables and optional realtime when present. `rebuild` supplies only archived inputs, verifies digests and checks the regenerated snapshot hash. Keep the store and processing release together; record the snapshot hash with any downstream scenario or exported report. The dashboard references this manifest by its digest. |
+
+Land-use polygon screening additionally checks planar ring topology, including
+self-intersections and invalid holes, using the study-area polygon validator.
+It rejects unsupported polar/dateline polygons and bounds screening to 10,000
+vertices per component and a cumulative sum of squared vertex counts of 50
+million per partition. Multipart geometries require review for interpart
+contacts and overlap; custom uploads retain their E03 geometry contract.
 
 Acceptance tests: `crates/mobility-ingest/tests/e04_normalization.rs` (E04-S01–S06)
 and `crates/mobility-api/tests/e04_quality.rs` (E04-S04). The dashboard CLI checks

@@ -1,4 +1,5 @@
 //! E04 offline, deterministic normalization of E03 inputs.
+mod geometry;
 mod lineage;
 mod spatial;
 mod temporal;
@@ -260,6 +261,26 @@ fn summarize(recipe: &Recipe, layers: &[Layer]) -> BTreeMap<String, Quality> {
         .collect()
 }
 
+fn defer_fixes(
+    fixes: &BTreeMap<(&str, &str, &str), (usize, &StopFix)>,
+    region: &str,
+    feed: &Source,
+    used: &mut BTreeSet<usize>,
+    findings: &mut Vec<Finding>,
+) {
+    for (&(fix_region, fix_feed, stop), &(index, fix)) in fixes {
+        if fix_region == region && fix_feed == feed.id && fix.feed_version == feed.version {
+            used.insert(index);
+            findings.push(finding(
+                "stop_fix_unevaluated",
+                stop,
+                "required GTFS or OSM partition rejected; reviewed fix not applied",
+                false,
+            ));
+        }
+    }
+}
+
 fn derive(recipe: Recipe, raw: Vec<RawFile>, sources: Vec<Candidate>) -> Result<Snapshot> {
     let mut networks = BTreeMap::new();
     let mut layers = sources
@@ -282,7 +303,15 @@ fn derive(recipe: Recipe, raw: Vec<RawFile>, sources: Vec<Candidate>) -> Result<
             );
         }
     }
+    let rejected_networks: BTreeSet<_> = layers
+        .iter()
+        .filter(|l| l.source.kind == "osm" && !l.source.is_valid())
+        .map(|l| &recipe.inputs[l.input].region)
+        .collect();
     for (region, entries) in &recipe.walk_entries {
+        if !entries.is_empty() && rejected_networks.contains(region) {
+            continue;
+        }
         if entries.is_empty()
             || !networks
                 .get(region)
@@ -306,17 +335,52 @@ fn derive(recipe: Recipe, raw: Vec<RawFile>, sources: Vec<Candidate>) -> Result<
         })
         .collect();
     for layer in &mut layers {
+        let region = &recipe.inputs[layer.input].region;
+        let rejected_network = rejected_networks.contains(region);
         if !layer.source.is_valid() {
+            if layer.source.kind == "gtfs" {
+                defer_fixes(
+                    &fixes,
+                    region,
+                    &layer.source.inventory.source,
+                    &mut used,
+                    &mut layer.findings,
+                );
+            }
+            if layer.source.kind == "osm" && recipe.walk_entries.contains_key(region) {
+                layer.findings.push(finding(
+                    "walk_entries_unevaluated",
+                    region,
+                    "OSM input rejected",
+                    false,
+                ));
+            }
             continue;
         }
-        let region = &recipe.inputs[layer.input].region;
         match layer.source.kind.as_str() {
             "osm" => {}
             "gtfs" => {
                 let Some(schedule) = temporal::schedule(&layer.source.data, &mut layer.findings)?
                 else {
+                    defer_fixes(
+                        &fixes,
+                        region,
+                        &layer.source.inventory.source,
+                        &mut used,
+                        &mut layer.findings,
+                    );
                     continue;
                 };
+                let empty_fixes = BTreeMap::new();
+                if rejected_network {
+                    defer_fixes(
+                        &fixes,
+                        region,
+                        &layer.source.inventory.source,
+                        &mut used,
+                        &mut layer.findings,
+                    );
+                }
                 let attachments = spatial::stops(
                     &layer.source,
                     region,
@@ -324,13 +388,22 @@ fn derive(recipe: Recipe, raw: Vec<RawFile>, sources: Vec<Candidate>) -> Result<
                         .get(region)
                         .zip(recipe.walk_entries.get(region))
                         .map(|((source, network), entries)| (source, network, entries)),
-                    &fixes,
+                    if rejected_network {
+                        &empty_fixes
+                    } else {
+                        &fixes
+                    },
                     &mut used,
                     &mut layer.findings,
                 )?;
                 layer.normalized = json!({"service_times": schedule, "stop_access": attachments});
             }
             "dot" => layer.normalized = temporal::dot(&layer.source.data, &mut layer.findings)?,
+            "places" => {
+                if geometry::screen(&layer.source.data, &mut layer.findings)? {
+                    layer.normalized = json!({"representation":"validated_source_data"});
+                }
+            }
             _ => layer.normalized = json!({"representation":"validated_source_data"}),
         }
     }
