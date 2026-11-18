@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. Routing, simulation, and calibration remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Source-to-network adapters, production routing, simulation and calibration remain future work.
 
 ## Principles
 
@@ -45,9 +45,9 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 ## Workspace
 
 ```text
-crates/mobility-graph     shared network domain types
+crates/mobility-graph     validated multimodal network and canonical binary schema
 crates/mobility-ingest    geography, project snapshots and offline public-data connectors
-crates/mobility-routing   routing boundary (not implemented)
+crates/mobility-routing   bounded time-aware reference routing
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
 crates/mobility-sim      simulation interfaces (not yet implemented)
@@ -76,9 +76,9 @@ for the full quality gates and [benchmark usage](docs/BENCHMARKS.md) for measure
 primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
 identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
 
-No runtime external input downloads, route computation, HTTP service, simulator, or Python
-bindings have been wired up yet. The benchmark is a developer demonstration of an
-existing metric primitive; it provides no planning predictions.
+No runtime external input downloads, source-to-routing-network adapter, HTTP
+service, simulator or Python bindings have been wired up. Synthetic reference
+routing and primitive benchmarks provide no planning predictions.
 
 ## City and metropolitan area search
 
@@ -136,6 +136,22 @@ cargo run --locked -p mobility-ingest --bin ingest-data -- preview fixtures/inge
 
 See the [data formats, licensing inventory and upload workflow](docs/PUBLIC-DATA-INGESTION.md).
 For the next step, run the [normalization and quality dashboard demo](docs/GEOSPATIAL-NORMALIZATION.md), which also shows how to replay a snapshot from its archived inputs.
+
+## Multimodal network and reference journeys
+
+E05 adds directed walking, bicycle/e-bike and car links, scheduled/frequency
+bus/rail/light rail, explicit transfers, personal-vehicle parking/carriage,
+step-free constraints and canonical graph serialization. Run the synthetic demo:
+
+```sh
+rustup run 1.97.1 cargo run -p mobility-routing --example e05_network
+```
+
+See the [network, clock, routing and binary schema contract](docs/MULTIMODAL-NETWORK.md)
+for acceptance tests, benchmark reproduction and limitations. The caller must
+supply validated transport attributes and complete service coverage; E04's
+screened topology is not automatically a routable network. Feasible paths do
+not establish real-world car independence.
 
 ## Agent-assisted issue delivery
 

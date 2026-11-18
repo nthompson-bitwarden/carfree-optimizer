@@ -1,8 +1,10 @@
 //! Core types for a directed multimodal transportation network.
-//! This crate is a scaffold, not a routing implementation.
+//! E05 adds a validated immutable representation in [`network`].
 
-/// Supported movement modes. Service-dependent routing is future work.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub mod network;
+
+/// Supported movement modes. Network and routing contracts keep them explicit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
     Walk,
     Bicycle,
@@ -13,10 +15,10 @@ pub enum Mode {
     Car,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EdgeId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
