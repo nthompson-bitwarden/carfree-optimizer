@@ -1,5 +1,9 @@
 //! Candidate infrastructure interventions. Physical feasibility and cost
 //! validation must occur before applying an intervention to a city network.
+pub mod corridor;
+pub mod evaluation;
+pub mod scenario;
+
 use mobility_graph::EdgeId;
 
 #[derive(Debug, Clone, PartialEq)]
