@@ -93,6 +93,12 @@ class FoundationsAcceptance(unittest.TestCase):
                         "Candidate CI must be runnable before opening a ready PR")
         self.assertNotIn("rust-toolchain@stable", text, "CI must honor the repository pin")
 
+    def test_e01_s04_given_pr_ci_when_branch_is_pushed_then_no_duplicate_push_run(self):
+        triggers = (ROOT / ".github" / "workflows" / "rust-ci.yml").read_text().split("jobs:", 1)[0]
+        self.assertRegex(triggers, r"(?m)^  pull_request:\s*$")
+        self.assertRegex(triggers, r"(?m)^  workflow_dispatch:\s*$")
+        self.assertNotRegex(triggers, r"(?m)^  push:")
+
     def test_e01_s04_given_reviewed_workspace_when_dependency_policy_runs_then_accepts(self):
         result = run(sys.executable, str(self.script("check-dependencies.py")))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
