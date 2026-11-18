@@ -24,7 +24,7 @@ surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 
 - `mobility-ingest`: canonical geography catalogue and deterministic search (E02-S01); validated study-area topology, dataset coverage/import contracts, dated project snapshots and scenario baseline references (E02-S02–S06). E03 adds offline data connectors with a shared provenance and validation envelope and an isolated custom-upload sidecar.
 - `mobility-graph`: immutable validated directed multimodal network, explicit service/transfer/access contracts and canonical binary v1 (E05); does not depend on RL.
-- `mobility-routing`: bounded deterministic time-aware reference routing over caller-supplied validated graph inputs (E05). Production door-to-door routing remains E07.
+- `mobility-routing`: bounded deterministic time-aware reference routing (E05), plus door-node itineraries, cycling preferences, joint multi-stop planning, immutable batches and departure-window statistics (E07) over caller-supplied validated graph inputs. Metro-scale performance and observed fidelity remain unvalidated.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
 - `interventions`: validated descriptions of candidate changes; no hidden mutation.
 - `mobility-sim`: scenario evaluation interface plus E06 travel demand and conditional tour feasibility; calibrated simulation remains future work.
@@ -77,6 +77,13 @@ weighted demand, traveler constraints, cost-based comparisons and explicit
 scenario sensitivities on the reference router. It evaluates supplied
 itineraries and selected departures, not a calibrated regional baseline or
 an optimization reward. Long-horizon sensitivity is reported separately.
+
+The [E07 routing contract](ROUTING.md) adds opt-in door-arrival semantics,
+physical component times separate from cycling preference costs, joint stop/dwell
+search preserving vehicle/turn state, revision-pinned batch cells and conditional
+nearest-rank departure-window summaries. Legacy E05/E06 APIs and graph binary v1
+are unchanged. Errors remain distinct from no-route-within-budget outcomes;
+all inputs require actual door connections and complete service coverage.
 
 ## Scientific safeguards
 

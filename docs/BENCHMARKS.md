@@ -26,6 +26,15 @@ O(fixture rows) harness memory. Peak memory is not measured. This small workload
 does not establish import, routing, city simulation, FFI, training, or independent
 scientific validation performance.
 
+## Routing benchmarks
+
+[E07 routing measurements](ROUTING.md#complexity-and-performance-evidence-s07)
+report paths/s, queries/s, nearest-rank p50/p95 latency and process peak RSS at
+64/128/256 nodes, with graph build separate. Reproduce each size in its own
+process using `e07_routing --benchmark SIZE`; no metro-scale claim is implied.
+The [E05 reference benchmark](MULTIMODAL-NETWORK.md#complexity-and-measured-synthetic-benchmark)
+retains its original workload and history separately from the primitive schema.
+
 ## Stored schema and provenance
 
 Each line is a schema-version-1 JSON object. Existing valid history is retained

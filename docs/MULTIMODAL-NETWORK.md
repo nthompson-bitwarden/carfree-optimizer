@@ -171,8 +171,11 @@ It does not assume that one node's earliest arrival dominates every later arriva
 Transitions enumerate scheduled/frequency runs and transfer windows lazily;
 no per-second waiting graph is allocated. Fixed input gives stable ID-order
 traversal and queue tie-breaking. `max_states` explicitly bounds accepted labels.
-This correctness-first implementation is not the scalable E07 production router,
+This correctness-first implementation is not a metro-scale performance guarantee,
 a fare optimizer, a demand assignment engine or an uncertainty simulator.
+[E07](ROUTING.md) extends the engine through an opt-in planner with physical
+component times, cycling costs, joint stops, batches and departure-window
+statistics, while preserving the legacy reference entry points.
 
 ### Complexity and measured synthetic benchmark
 

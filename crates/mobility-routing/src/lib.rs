@@ -5,6 +5,8 @@ use mobility_graph::{EdgeId, Mode, NodeId};
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BinaryHeap};
 
+pub mod planner;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Profile {
     pub allowed_modes: Vec<Mode>,
@@ -91,11 +93,15 @@ struct State {
     /// Boarding facility must still be open at the actual vehicle departure.
     boarding_window: Option<(i64, i64)>,
     ridden_transit: bool,
+    stop_index: usize,
+    boardings: u32,
     vehicle: Option<Vehicle>,
 }
 struct Label {
     state: State,
-    previous: Option<(usize, Step)>,
+    previous: Option<(usize, Option<Step>)>,
+    penalty: u64,
+    visits: Vec<planner::Visit>,
 }
 fn add(a: i64, b: u32) -> Result<i64, RoutingError> {
     a.checked_add(i64::from(b)).ok_or(RoutingError::Arithmetic)
@@ -200,6 +206,28 @@ fn search(
     require_transit: bool,
     car_approach: Option<EdgeId>,
 ) -> Result<Outcome, RoutingError> {
+    search_options(
+        network,
+        request,
+        require_transit,
+        car_approach,
+        &planner::Options::default(),
+        false,
+    )
+    .map(|out| match out {
+        planner::PlannedOutcome::Journey(j) => Outcome::Journey(j.journey),
+        planner::PlannedOutcome::Unmet(u) => Outcome::Unmet(u),
+    })
+}
+
+fn search_options(
+    network: &Network,
+    request: &Request,
+    require_transit: bool,
+    car_approach: Option<EdgeId>,
+    options: &planner::Options,
+    door: bool,
+) -> Result<planner::PlannedOutcome, RoutingError> {
     let d = network.data();
     if network.node(request.from).is_none() || network.node(request.to).is_none() {
         return Err(invalid("unknown endpoint"));
@@ -241,6 +269,8 @@ fn search(
         run: None,
         boarding_window: None,
         ridden_transit: false,
+        stop_index: 0,
+        boardings: 0,
         vehicle: request.vehicle.map(|mode| Vehicle {
             mode,
             parked: None,
@@ -250,15 +280,26 @@ fn search(
     let mut labels = vec![Label {
         state: initial.clone(),
         previous: None,
+        penalty: 0,
+        visits: Vec::new(),
     }];
-    let mut seen = BTreeMap::from([(initial.clone(), 0usize)]);
-    let mut queue = BinaryHeap::from([Reverse((initial.time, 0usize))]);
+    let mut seen = BTreeMap::from([(initial.clone(), (0u64, 0usize))]);
+    let mut queue = BinaryHeap::from([Reverse((0u64, 0usize))]);
     let mut outgoing: BTreeMap<NodeId, Vec<&Link>> = BTreeMap::new();
     for link in &d.links {
         outgoing.entry(link.from).or_default().push(link);
     }
     while let Some(Reverse((_, index))) = queue.pop() {
         let state = labels[index].state.clone();
+        if seen
+            .get(&state)
+            .is_some_and(|(_, current)| *current != index)
+        {
+            continue;
+        }
+        if state.time > request.deadline_utc {
+            continue;
+        }
         let node = network
             .node(state.node)
             .ok_or_else(|| invalid("missing graph node"))?;
@@ -266,21 +307,70 @@ fn search(
             continue;
         }
         if state.node == request.to
+            && state.stop_index == options.stops.len()
+            && (!door || !is_transit(state.mode))
             && (!require_transit || (state.ridden_transit && state.mode == Mode::Walk))
         {
             let mut steps = Vec::new();
+            let mut visits = Vec::new();
             let mut cursor = index;
-            while let Some((prev, step)) = &labels[cursor].previous {
-                steps.push(step.clone());
+            loop {
+                visits.extend(labels[cursor].visits.iter().rev().cloned());
+                let Some((prev, step)) = &labels[cursor].previous else {
+                    break;
+                };
+                if let Some(step) = step {
+                    steps.push(step.clone());
+                }
                 cursor = *prev;
             }
             steps.reverse();
-            return Ok(Outcome::Journey(Journey {
+            visits.reverse();
+            let journey = Journey {
                 departure_utc: request.departure_utc,
                 arrival_utc: state.time,
                 steps,
                 graph_revision: d.revision.clone(),
-            }));
+            };
+            return Ok(planner::PlannedOutcome::Journey(planner::itinerary(
+                network, journey, visits, options,
+            )?));
+        }
+        // Activity is a separate transition: same-node parking/alighting may
+        // precede it without losing possession, approach or transfer history.
+        if let Some(stop) = options.stops.get(state.stop_index) {
+            if stop.node == state.node
+                && !is_transit(state.mode)
+                && i64::from(stop.dwell_seconds) <= request.deadline_utc - state.time
+            {
+                let mut next = state.clone();
+                next.time = add(state.time, stop.dwell_seconds)?;
+                next.stop_index += 1;
+                let penalty = labels[index].penalty;
+                if !seen.get(&next).is_some_and(|(p, _)| *p <= penalty) {
+                    if labels.len() >= request.max_states {
+                        return Err(RoutingError::StateLimit);
+                    }
+                    let objective = u64::try_from(next.time - request.departure_utc)
+                        .map_err(|_| RoutingError::Arithmetic)?
+                        .checked_add(penalty)
+                        .ok_or(RoutingError::Arithmetic)?;
+                    let next_index = labels.len();
+                    let visit = planner::Visit {
+                        node: state.node,
+                        arrival_utc: state.time,
+                        departure_utc: next.time,
+                    };
+                    seen.insert(next.clone(), (penalty, next_index));
+                    queue.push(Reverse((objective, next_index)));
+                    labels.push(Label {
+                        state: next,
+                        previous: Some((index, None)),
+                        penalty,
+                        visits: vec![visit],
+                    });
+                }
+            }
         }
         let Some(links) = outgoing.get(&state.node) else {
             continue;
@@ -298,26 +388,43 @@ fn search(
                 continue;
             }
             let mut emit = |next: State, departure: i64| -> Result<(), RoutingError> {
-                if next.time > request.deadline_utc || seen.contains_key(&next) {
+                let physical_arrival = next.time;
+                let penalty = labels[index]
+                    .penalty
+                    .checked_add(options.comfort.penalty(link))
+                    .ok_or(RoutingError::Arithmetic)?;
+                if next.time > request.deadline_utc
+                    || seen.get(&next).is_some_and(|(p, _)| *p <= penalty)
+                {
                     return Ok(());
                 }
                 if labels.len() >= request.max_states {
                     return Err(RoutingError::StateLimit);
                 }
+                let objective = u64::try_from(
+                    next.time
+                        .checked_sub(request.departure_utc)
+                        .ok_or(RoutingError::Arithmetic)?,
+                )
+                .map_err(|_| RoutingError::Arithmetic)?
+                .checked_add(penalty)
+                .ok_or(RoutingError::Arithmetic)?;
                 let next_index = labels.len();
                 let step = Step {
                     edge: link.id,
                     mode: next.mode,
                     departure_utc: departure,
-                    arrival_utc: next.time,
+                    arrival_utc: physical_arrival,
                     waiting_seconds: departure - state.time,
                     run: next.run.clone(),
                 };
-                seen.insert(next.clone(), next_index);
-                queue.push(Reverse((next.time, next_index)));
+                seen.insert(next.clone(), (penalty, next_index));
+                queue.push(Reverse((objective, next_index)));
                 labels.push(Label {
                     state: next,
-                    previous: Some((index, step)),
+                    previous: Some((index, Some(step))),
+                    penalty,
+                    visits: Vec::new(),
                 });
                 Ok(())
             };
@@ -389,6 +496,26 @@ fn search(
                         continue;
                     }
                     let mut next = state.clone();
+                    if *action == TransferAction::Board {
+                        if options
+                            .max_boardings
+                            .is_some_and(|max| state.boardings >= max)
+                        {
+                            continue;
+                        }
+                        // Only counts relevant to an explicit bound affect state space.
+                        if options.max_boardings.is_some() {
+                            next.boardings = state
+                                .boardings
+                                .checked_add(1)
+                                .ok_or(RoutingError::Arithmetic)?;
+                        }
+                    }
+                    let seconds = if *action == TransferAction::Board {
+                        link.seconds.max(options.minimum_board_seconds)
+                    } else {
+                        link.seconds
+                    };
                     let legal = match action {
                         TransferAction::Board => state.run.is_none(),
                         TransferAction::Alight => state.run.is_some(),
@@ -413,12 +540,12 @@ fn search(
                         }
                         // Compare remaining time before adding: irrelevant extreme
                         // windows must not overflow and abort another legal route.
-                        if *end - depart < i64::from(link.seconds)
-                            || request.deadline_utc - depart < i64::from(link.seconds)
+                        if *end - depart < i64::from(seconds)
+                            || request.deadline_utc - depart < i64::from(seconds)
                         {
                             continue;
                         }
-                        let arrival = add(depart, link.seconds)?;
+                        let arrival = add(depart, seconds)?;
                         let mut n = next.clone();
                         n.time = arrival;
                         if *action == TransferAction::Board {
@@ -494,7 +621,7 @@ fn search(
             }
         }
     }
-    Ok(Outcome::Unmet(UnmetTrip {
+    Ok(planner::PlannedOutcome::Unmet(UnmetTrip {
         from: request.from,
         to: request.to,
         deadline_utc: request.deadline_utc,

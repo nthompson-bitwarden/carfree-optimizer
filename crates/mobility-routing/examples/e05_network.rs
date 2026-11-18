@@ -16,7 +16,7 @@ fn provenance() -> Provenance {
         uncertainty: "arbitrary deterministic demonstration inputs; uncalibrated".into(),
     }
 }
-fn fixture(count: u32) -> NetworkData {
+pub(crate) fn fixture(count: u32) -> NetworkData {
     let mut links = Vec::new();
     for mode in [Mode::Walk, Mode::Bicycle, Mode::Car] {
         for i in 0..count - 1 {
@@ -122,7 +122,7 @@ fn fixture(count: u32) -> NetworkData {
         }],
     }
 }
-fn request(count: u32, departure: i64) -> Request {
+pub(crate) fn request(count: u32, departure: i64) -> Request {
     Request {
         from: NodeId(0),
         to: NodeId(count - 1),
