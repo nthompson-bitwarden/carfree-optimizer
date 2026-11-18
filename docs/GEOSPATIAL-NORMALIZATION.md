@@ -37,7 +37,8 @@ region IDs and vintages. An absent input is missing, a failed E03 or timezone
 or polygon topology validation is rejected, and a successful partition with
 findings is marked for review. If a supplied OSM or GTFS partition is rejected,
 its diagnostics remain visible and dependent walk entries or fixes are reported
-as unevaluated rather than applied. File/archive I/O and recipe errors fail the command instead of producing
+as unevaluated rather than applied. A stop without a usable walk network and
+entry nodes has status `unevaluated`, not `unreachable_in_screened_network`. File/archive I/O and recipe errors fail the command instead of producing
 a snapshot. A successful command means the **report** was created, not that its
 data passed validation or is usable for routing.
 

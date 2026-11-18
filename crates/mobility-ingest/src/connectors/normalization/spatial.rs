@@ -417,6 +417,14 @@ pub(super) fn stops(
                 "reviewed",
                 json!({"fix_index":index,"before_node":automatic,"after_node":fix.node,"separation_m":separation}),
             )
+        } else if network.is_none() {
+            findings.push(finding(
+                "stop_access_unevaluated",
+                id,
+                "no usable pedestrian network with declared walk entries",
+                false,
+            ));
+            (None, "unevaluated", Value::Null)
         } else if automatic.is_some() {
             (automatic, "coincident_walk_node", Value::Null)
         } else {

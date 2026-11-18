@@ -12,7 +12,7 @@ pub use lineage::{build, load, rebuild};
 pub use temporal::service_instant;
 
 pub const SNAPSHOT_SCHEMA: u32 = 1;
-pub const PROCESSING_VERSION: &str = "e04-normalization-v1";
+pub const PROCESSING_VERSION: &str = "e04-normalization-v2";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

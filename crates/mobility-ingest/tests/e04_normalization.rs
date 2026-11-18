@@ -178,7 +178,9 @@ fn e04_s03_s04_rejected_dependencies_leave_a_report_and_defer_reviews() {
             .iter()
             .any(|f| f.code == "stop_fix_unevaluated"));
         if rejected == "osm" {
-            assert!(snap.layers[1].normalized["stop_access"][1]["target"].is_null());
+            let stop = &snap.layers[1].normalized["stop_access"][1];
+            assert!(stop["target"].is_null());
+            assert_eq!(stop["status"], "unevaluated");
         }
         rebuild(store.path(), &id).unwrap();
     }
