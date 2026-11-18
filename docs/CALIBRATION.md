@@ -191,7 +191,7 @@ combinations, but these are safety bounds, not supported production scale.
 Reproduce the whole-job benchmark (includes E08 simulation):
 
 ```sh
-rustup run 1.97.1 cargo run --release -p mobility-sim --example e09_calibration
+rustup run 1.97.1 cargo run --release -p mobility-sim --example e09_calibration_benchmark
 ```
 
 Apple arm64, Rust 1.97.1, release build, two synthetic targets, two seeds, 20 jobs
