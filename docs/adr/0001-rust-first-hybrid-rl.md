@@ -72,4 +72,4 @@ from timing noise.
 Add a superseding numbered ADR with comparison artifacts and migration steps
 when accepting or replacing a proposal. Do not rewrite an earlier Proposed
 record into a claim that unrun benchmarks passed. Dependency additions still
-need explicit review and an update to the local-only dependency policy.
+need explicit review and an update to the dependency policy. See [ADR 0002](0002-ingestion-format-decoders.md) for the scoped ingestion exception.

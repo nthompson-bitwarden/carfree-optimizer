@@ -93,7 +93,7 @@ class FoundationsAcceptance(unittest.TestCase):
                         "Candidate CI must be runnable before opening a ready PR")
         self.assertNotIn("rust-toolchain@stable", text, "CI must honor the repository pin")
 
-    def test_e01_s04_given_path_only_workspace_when_dependency_policy_runs_then_accepts(self):
+    def test_e01_s04_given_reviewed_workspace_when_dependency_policy_runs_then_accepts(self):
         result = run(sys.executable, str(self.script("check-dependencies.py")))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

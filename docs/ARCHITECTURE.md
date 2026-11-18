@@ -22,7 +22,7 @@ These are ownership boundaries, not a claim that the planned pipeline is
 implemented. [Module contracts](MODULE-CONTRACTS.md) list the current public
 surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 
-- `mobility-ingest`: canonical geography catalogue and deterministic search (E02-S01); validated study-area topology, dataset coverage/import contracts, dated project snapshots and scenario baseline references (E02-S02–S06). Transport-network adapters remain future work.
+- `mobility-ingest`: canonical geography catalogue and deterministic search (E02-S01); validated study-area topology, dataset coverage/import contracts, dated project snapshots and scenario baseline references (E02-S02–S06). E03 adds offline data connectors with a shared provenance and validation envelope and an isolated custom-upload sidecar.
 - `mobility-graph`: domain graph and mode concepts; does not depend on RL.
 - `mobility-routing`: routing boundary depending on graph types; no router yet.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.

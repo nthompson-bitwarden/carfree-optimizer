@@ -14,6 +14,10 @@ if ! rustup run "$toolchain" rustc --version; then
     echo "Install the pinned toolchain: rustup toolchain install $toolchain --profile minimal --component rustfmt --component clippy" >&2
     exit 1
 fi
+if ! command -v "${PROTOC:-protoc}" >/dev/null 2>&1; then
+    echo 'Missing protoc; install the Protocol Buffers compiler or set PROTOC to its executable path.' >&2
+    exit 1
+fi
 rustup run "$toolchain" cargo fmt --version
 rustup run "$toolchain" cargo clippy --version
 python3 scripts/check-dependencies.py

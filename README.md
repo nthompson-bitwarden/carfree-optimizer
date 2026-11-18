@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Transportation inputs and simulation are not yet implemented, and no planning-grade predictions should be inferred from this repository.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion is available. Routing, simulation, and calibration remain future work.
 
 ## Principles
 
@@ -46,7 +46,7 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 
 ```text
 crates/mobility-graph     shared network domain types
-crates/mobility-ingest    geography catalogue, study areas, coverage and project snapshots
+crates/mobility-ingest    geography, project snapshots and offline public-data connectors
 crates/mobility-routing   routing boundary (not implemented)
 crates/accessibility     access and parity metric primitives
 crates/interventions     candidate infrastructure change types
@@ -61,14 +61,15 @@ backlog/                 full prioritized user stories
 docs/                    architecture and decisions
 ```
 
-Install rustup and Python 3.11 or newer, then run:
+Install rustup, Python 3.11 or newer, and the Protocol Buffers compiler (`protoc`). Then run:
 
 ```sh
 rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+rustup run 1.97.1 cargo fetch --locked
 ./scripts/bootstrap.sh
 ```
 
-Bootstrap checks the pinned Rust tools, enforces the current local-only dependency
+Bootstrap checks the pinned Rust tools, enforces the scoped ingest dependency
 policy, and runs the locked, offline workspace smoke test. It also works when
 invoked by absolute path from another directory. See [development and validation](docs/DEVELOPMENT.md)
 for the full quality gates and [benchmark usage](docs/BENCHMARKS.md) for measured
@@ -121,6 +122,19 @@ an exact polygon-distance buffer. Roads, transit, population and demand remain
 explicitly missing, so creating a project does not initialize a transportation
 model. See the [workflow, Rust API and stored schema guide](docs/STUDY-AREA-ONBOARDING.md)
 for drawn boundaries, batch requests, validation and limitations.
+
+## Import public or local data
+
+E03 adds offline OSM, GTFS and GTFS-Realtime, Census, land-use, traffic, crash,
+and emissions readers. Each import includes source provenance and validation.
+The custom upload CLI maps CSV, GeoJSON and Parquet and supports preview and
+rollback for a saved E02 project.
+
+```sh
+cargo run --locked -p mobility-ingest --bin ingest-data -- preview fixtures/ingestion/upload.json 2026-11-17
+```
+
+See the [data formats, licensing inventory and upload workflow](docs/PUBLIC-DATA-INGESTION.md).
 
 ## Agent-assisted issue delivery
 
