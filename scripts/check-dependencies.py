@@ -16,6 +16,7 @@ REGISTRY = "registry+https://github.com/rust-lang/crates.io-index"
 INGEST = ROOT / "crates/mobility-ingest/Cargo.toml"
 INGEST_DECODERS = {
     "chrono": {"version": "=0.4.45", "default-features": False, "features": ["std"]},
+    "chrono-tz": {"version": "=0.10.4", "default-features": False},
     "csv": "=1.4.0",
     "gtfs-realtime": "=0.2.0",
     "parquet": {
@@ -26,6 +27,7 @@ INGEST_DECODERS = {
     "quick-xml": "=0.39.4",
     "serde": {"version": "=1.0.228", "features": ["derive"]},
     "serde_json": "=1.0.149",
+    "sha2": "=0.11.1",
     "tempfile": "=3.27.0",
 }
 

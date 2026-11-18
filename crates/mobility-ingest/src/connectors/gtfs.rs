@@ -3,6 +3,19 @@ use prost::Message;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 
+// Files consumed by this connector and archived by E04.
+pub(super) const TABLE_NAMES: [&str; 9] = [
+    "agency.txt",
+    "calendar.txt",
+    "calendar_dates.txt",
+    "frequencies.txt",
+    "routes.txt",
+    "stop_times.txt",
+    "stops.txt",
+    "transfers.txt",
+    "trips.txt",
+];
+
 type Ids = BTreeSet<String>;
 type Stops = BTreeMap<String, u8>;
 const DAYS: [&str; 7] = [
@@ -30,6 +43,7 @@ impl Feed<'_> {
         columns: &[&str],
         mut validate: impl FnMut(&Row) -> Result<()>,
     ) -> Result<()> {
+        debug_assert!(TABLE_NAMES.contains(&name));
         let path = self.directory.join(name);
         if !required && !optional_exists(self.root, &path)? {
             return Ok(());
@@ -79,7 +93,7 @@ fn optional(row: &Row, field: &str) -> bool {
     row.get(field).is_some_and(|value| !value.is_empty())
 }
 
-fn service_time(value: &str) -> Result<u32> {
+pub(super) fn service_time(value: &str) -> Result<u32> {
     let (hour, rest) = value
         .split_once(':')
         .ok_or_else(|| Error::new("expected service time H:MM:SS"))?;

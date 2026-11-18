@@ -56,6 +56,12 @@ without reimporting their source; later expansion requires the recorded source
 to match the active catalogue. File updates assume a single writer; atomic
 replacement is not a concurrent transaction protocol.
 
+The [E04 normalization contract](GEOSPATIAL-NORMALIZATION.md) adds an offline
+quality-screening step after ingestion. It produces a candidate topology,
+pedestrian stop attachments, QA findings and an immutable replay manifest;
+`mobility-api` renders the report without calculating scores. This is not a
+simulation-ready multimodal graph or demand model.
+
 ## Scientific safeguards
 
 - Maintain holdout cities and dates for generalization tests.

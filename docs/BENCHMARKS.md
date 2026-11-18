@@ -63,3 +63,28 @@ of a measurement; preserve source changes and environment evidence in reviews.
 Store accepted new runs by committing the selected JSONL additions through the
 normal signed issue workflow. Do not replace old measurements to conceal slower
 results or reinterpret this primitive benchmark as scientific calibration.
+
+## E04 normalization
+
+Separately measured end-to-end `ingest-data normalize` in release mode on
+macOS arm64 (Rust 1.98.1). Use the OSM request from the
+[synthetic recipe](../fixtures/normalization/recipe.json), keeping only its OSM
+input and expectation, with no walk entries or stop fixes. Generate 50,001 OSM
+nodes (`i = 0..50000`, ID `i+1`, longitude `-122 + (i % 250) * .0001`,
+latitude `45 + (i / 250 rounded down) * .0001`, four decimal places). Each
+successive pair forms a separate `highway=footway` way. The fixture is a synthetic
+import-scale chain, not a real city's anatomy. Run `/usr/bin/time -lp` on
+normalization with a fresh store for each run, after building with
+`cargo build --release --locked -p mobility-ingest --bin ingest-data`.
+
+A 6.4 MiB extract produced a 19 MiB snapshot. Three runs took 0.58, 0.34, and
+0.34 s (0.34 s median); peak RSS was 524–526 MiB. This includes staging, parsing,
+QA, hashing and writing, but not routing or browser rendering. Memory overhead
+is substantial because the source and derived representations coexist in memory.
+
+For V nodes, E segments and S stops in a partition, ordered indexes and weak
+components cost O((V + E) log(V + E)) time and O(V + E) space; matching stops
+against indexed nodes costs O(S log V) time plus walk-entry indexing and does
+not scan all edges per stop. Total archive copying and hashing are linear in
+bytes read/written. This benchmark does not establish stop-matching throughput,
+city-scale memory requirements or calibration.

@@ -1,5 +1,6 @@
+use mobility_ingest::connectors::normalization;
 use mobility_ingest::connectors::{
-    apply_upload, inspect, inventory, load_upload, rollback_upload, Candidate, Request,
+    apply_upload, inspect, inventory, load_upload, rollback_upload, Candidate,
 };
 use serde_json::{json, Map, Value};
 use std::{
@@ -17,13 +18,15 @@ const USAGE: &str = "Usage:
   ingest-data apply REQUEST.json AS_OF PROJECT.tsv
   ingest-data active PROJECT.tsv
   ingest-data rollback PROJECT.tsv
+  ingest-data normalize RECIPE.json STORE
+  ingest-data rebuild STORE SNAPSHOT_SHA256
 
 AS_OF is an explicit YYYY-MM-DD freshness assessment date.
 Preview validates all records and prints up to five samples per collection.
 Import prints the complete validated candidate to stdout. Validation errors exit 2.
 Apply installs a custom upload sidecar. Rollback removes it.";
 
-fn request(path: &Path) -> Result<(Request, &Path), Box<dyn Error>> {
+fn request<T: serde::de::DeserializeOwned>(path: &Path) -> Result<(T, &Path), Box<dyn Error>> {
     const LIMIT: u64 = 1024 * 1024;
     let metadata = std::fs::metadata(path)?;
     if !metadata.is_file() || metadata.len() > LIMIT {
@@ -86,6 +89,18 @@ fn run() -> Result<u8, Box<dyn Error>> {
     match args.first().and_then(|arg| arg.to_str()) {
         Some("--help" | "-h") => {
             println!("{USAGE}");
+            Ok(0)
+        }
+        Some("normalize") if args.len() == 3 => {
+            let (recipe, root) = request(Path::new(&args[1]))?;
+            let id = normalization::build(recipe, root, Path::new(&args[2]))?;
+            println!("{id}");
+            Ok(0)
+        }
+        Some("rebuild") if args.len() == 3 => {
+            let id = args[2].to_str().ok_or("snapshot ID must be UTF-8")?;
+            normalization::rebuild(Path::new(&args[1]), id)?;
+            println!("Verified replay of {id}");
             Ok(0)
         }
         Some("inventory") if args.len() >= 3 => {
