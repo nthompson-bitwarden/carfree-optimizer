@@ -2,6 +2,7 @@
 //! before providing predictions or optimization rewards.
 
 pub mod demand;
+pub mod simulation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioMetrics {

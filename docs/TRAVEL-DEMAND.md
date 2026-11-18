@@ -3,7 +3,9 @@
 E06-S01–S08 (#54–#61) add an in-memory Rust demand and feasibility model in
 `mobility_sim::demand`. The existing `ScenarioEvaluator` interface is unchanged.
 There is no new persisted schema, HTTP API, source adapter, demand assignment,
-congestion model, or calibrated simulator. `Demand.version` and `CostModel.version`
+congestion model, or calibrated simulator in E06. The separate [E08 simulator](SIMULATION.md)
+now consumes these unchanged inputs for bounded reference assignment.
+`Demand.version` and `CostModel.version`
 must be `demand::VERSION` (1); caller-assigned revisions identify input releases,
 not hashes. Keep the graph, demand, cost and environment assumptions together for
 replay. Increment the contract version for incompatible semantics changes.

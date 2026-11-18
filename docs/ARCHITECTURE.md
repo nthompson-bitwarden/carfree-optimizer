@@ -27,7 +27,7 @@ surface, tests, and restrictions for each crate (E01-S01/E01-S03).
 - `mobility-routing`: bounded deterministic time-aware reference routing (E05), plus door-node itineraries, cycling preferences, joint multi-stop planning, immutable batches and departure-window statistics (E07) over caller-supplied validated graph inputs. Metro-scale performance and observed fidelity remain unvalidated.
 - `accessibility`: input/output-neutral accessibility measures, separated from simulation assumptions.
 - `interventions`: validated descriptions of candidate changes; no hidden mutation.
-- `mobility-sim`: scenario evaluation interface plus E06 travel demand and conditional tour feasibility; calibrated simulation remains future work.
+- `mobility-sim`: scenario evaluation interface, E06 travel demand and conditional tour feasibility, plus E08 bounded reference assignment with immutable edits, entry-period road congestion, finite transit-capacity bounds, parallel scenarios, sensitivity distributions and fixed-cost/iterative adapters; calibrated simulation remains future work.
 - `optimizer-env`: Markov decision process contracts and action feasibility; objective policies interchangeable.
 - `optimizer-bridge`: boundary depending on `optimizer-env`; future bindings batch Rust transitions into the training runtime, avoiding per-trip FFI chatter. No bindings yet.
 - `mobility-api`: accessible HTML/SVG search and project reports, offline `city-search` and `study-area` CLIs, local file persistence and per-project batch orchestration using `mobility-ingest` (E02). Future service boundary for reproducible experiments and versioned results. No HTTP server or endpoints yet; Axum remains proposed.
@@ -84,6 +84,14 @@ search preserving vehicle/turn state, revision-pinned batch cells and conditiona
 nearest-rank departure-window summaries. Legacy E05/E06 APIs and graph binary v1
 are unchanged. Errors remain distinct from no-route-within-budget outcomes;
 all inputs require actual door connections and complete service coverage.
+
+The [E08 simulation contract](SIMULATION.md) preserves existing public APIs and
+uses E06 legal whole-tour candidates from per-period cost views and a maximum-cost
+envelope. It replays car paths at actual link-entry periods and explicitly reports
+nonconvergence, candidate-set limitations, served demand and denied essential-trip
+weight. Finite transit reservations are atomic across tours; denied demand is a
+conservative bound, not a next-service waiting prediction. The alternate fixed-cost
+adapter is a reference comparison, not independent scientific validation.
 
 ## Scientific safeguards
 
