@@ -479,8 +479,8 @@ fn e05_s07_step_free_unmet_and_request_errors_are_distinct() {
 #[test]
 fn e05_s03_after_midnight_calendar_addition_and_dst_origins() {
     for (date, weekday, origin, next_date, next_weekday, next_origin) in [
-        (20260308, 6, 0, 20260309, 0, 82800), // 23-hour local day
-        (20261101, 6, 0, 20261102, 0, 90000), // 25-hour local day
+        (20260307, 5, 0, 20260308, 6, 82800), // 23-hour noon-based origin gap
+        (20261031, 5, 0, 20261101, 6, 90000), // 25-hour noon-based origin gap
     ] {
         let mut d = data();
         d.timezone = "America/New_York".into();
