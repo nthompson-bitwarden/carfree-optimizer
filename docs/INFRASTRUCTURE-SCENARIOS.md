@@ -3,7 +3,10 @@
 E10-S01–S08 extend `interventions` with deterministic, atomic scenario authoring
 on caller-supplied E05 networks and explicit E08 evaluation inputs. Dependencies
 E05 and E08 remain unchanged. The original descriptive `Intervention` enum and
-network binary schema v1 are preserved. There is no new persisted schema, web
+network binary schema v1 are preserved. [E11 transit service design](TRANSIT-SERVICE-DESIGN.md)
+extends this same transaction/history path with complete service and station
+changes, recomputed operations and separate fare comparisons. Use E11 rather
+than `BusTiming` when changing run identities or calendars. There is no new persisted schema, web
 editor, geographic inference, source-to-network adapter or optimizer integration.
 
 ## Reviewable demonstration

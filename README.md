@@ -80,6 +80,22 @@ No runtime external input downloads, source-to-routing-network adapter, HTTP
 service, calibrated simulator or Python bindings have been wired up. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
 
+## Transit service design
+
+[E11 transit proposals](docs/TRANSIT-SERVICE-DESIGN.md) add/reroute bus and rail
+patterns with calendars, frequency, timed transfers, station walking/bike access
+and explicit fleet, staffing and operating estimates. BRT proposals reuse the
+conserved lane ledger. Fare-policy comparisons report physical door journeys and
+separate generalized cost; they do not perform fare-aware route or mode choice.
+
+```sh
+rustup run 1.97.1 cargo run --locked --offline -p interventions --example e11_transit
+```
+
+All demo inputs are synthetic modeled assumptions, not calibrated predictions or
+operational approval. Essential access requirements, mobility constraints and
+explicit passenger supply remain necessary for scenario evaluation.
+
 ## Infrastructure scenarios
 
 [E10 scenario authoring](docs/INFRASTRUCTURE-SCENARIOS.md) supports protected bike
