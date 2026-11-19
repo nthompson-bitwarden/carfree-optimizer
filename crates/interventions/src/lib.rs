@@ -2,6 +2,7 @@
 //! validation must occur before applying an intervention to a city network.
 pub mod corridor;
 pub mod evaluation;
+pub mod feasibility;
 pub mod scenario;
 pub mod transit;
 

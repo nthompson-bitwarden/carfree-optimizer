@@ -197,3 +197,59 @@ routing remains the bounded E07 search, not a polynomial metro-routing claim.
 History retains full snapshots and sidecars as in E10. Fleet estimates omit
 interlining and labor constraints; synthetic accounting performance says nothing
 about calibration, physical feasibility or operating commitments.
+
+## E12 feasibility screening
+
+```sh
+rustup run 1.97.1 cargo run --locked --offline --release -p interventions --example e12_feasibility -- --bench
+```
+
+Measured on arm64 with rustc 1.97.1, optimized profile, 20 sequential repetitions,
+synthetic MIT abstract corridor dated 2026-01-05, seed 42. Timings include preview,
+all gates, input audit cloning and result disposal; exclude fixture preparation.
+Run-to-run/cache noise is visible, so these are not throughput guarantees.
+
+| Declared OD samples (two routes each), 19 baseline links | Mean µs |
+| ---: | ---: |
+| 6 | 287.671 |
+| 24 | 473.419 |
+| 96 | 1059.323 |
+| 384 | 2462.113 |
+
+| Assessed segments / baseline links, 6 samples | Mean µs |
+| ---: | ---: |
+| 6 / 19 | 108.915 |
+| 38 / 51 | 829.621 |
+| 134 / 147 | 7037.419 |
+
+| Construction phases, 6 samples per phase plus final | Mean µs |
+| ---: | ---: |
+| 1 | 207.967 |
+| 2 | 324.806 |
+| 4 | 578.848 |
+
+Network scaling adds disconnected synthetic car segments with explicit lane/ROW
+records; it does not approximate an urban topology. Phases add permanent works
+and a first-phase temporary closure. No peak-memory measurement or metro-scale
+performance claim is made.
+
+Let V/E be graph nodes/links, I input evidence rows, Q protected requests, L lane
+records, P phases, and G the existing E05 network-revalidation cost (including
+timetable expansion). Existing E10 preview/rebuild/continuity and E11 operations
+costs still apply. Provenance reuses the existing graph validator, cloning and
+validating the graph per provenance row: O(I*G), potentially quadratic as evidence
+and graph grow together. This deliberately simple reference path is not a hot-path
+metro engine. Engineering coverage adds O(E log E + L + I log I), plus allocation
+membership checks (worst O(E*I)) and memory O(E+I+L). Each vehicle OD clones and
+revalidates its permission-filtered graph, then performs bounded E07 routing;
+Q requests therefore cost O(Q*(G + routing)), bounded by each `max_states`, not
+an unbounded reachability promise. The full input/snapshot audit is retained.
+
+Plans repeat screening for P effective snapshots plus final and retain those
+snapshots, inputs, and cloned permanent history: memory scales with P*(V+E+I),
+including E10 full-snapshot history. Temporary service comparison scans trip
+links and transfer incidents (worst quadratic in E); active-run validation has
+explicit E11 bounds, and suspension enumeration caps examined events at one
+million. Bounds exhaustion rejects rather than implying a suspended service.
+Risk estimation multiplies three supplied rates by exposure and validates fixed
+metadata, using existing provenance graph validation; it never runs simulation.

@@ -80,6 +80,21 @@ No runtime external input downloads, source-to-routing-network adapter, HTTP
 service, calibrated simulator or Python bindings have been wired up. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
 
+## Feasibility, budgets and construction phases
+
+[E12 conservative screening](docs/FEASIBILITY.md) checks explicit capital/annual
+budgets, lane widths/shared right-of-way, engineering restrictions and protected
+outbound/return journeys before assignment. Ordered construction milestones
+support expiring temporary changes. Collision-risk estimates use a separate
+exposure/calibration model, never simulated crashes.
+
+```sh
+rustup run 1.97.1 cargo run --locked --offline -p interventions --example e12_feasibility
+```
+
+All demo evidence is synthetic. A screening pass is not engineering approval,
+comprehensive access coverage, empirical calibration or simulation readiness.
+
 ## Transit service design
 
 [E11 transit proposals](docs/TRANSIT-SERVICE-DESIGN.md) add/reroute bus and rail
