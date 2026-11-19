@@ -37,6 +37,9 @@ strictly before `end`, not an assumed average half-headway wait.
 Replacements remove every old ride in that trip and rebuild the whole candidate
 through `Network::new`: stop order, topology, mode/calendar consistency, run sets,
 dwell, calendars, time overflow and access metadata are validated together.
+Retained directed trip legs cannot lose known accessible status, even when their
+edge IDs or stop indices change. Essential OD/profile requirements remain needed
+for reroutes that replace those legs with a different path.
 Rerouting an allocated bus ride may not remove its edge ID, change its endpoints
 or change it away from bus mode. There is deliberately no implicit release or
 relocation of physical bus space. That needs a separately assessed lane plan.

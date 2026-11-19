@@ -330,6 +330,37 @@ fn e11_s05_station_opportunity_requires_both_ride_endpoints_inside_coverage() {
     }
 }
 #[test]
+fn e11_s01_s04_s05_fresh_edge_id_cannot_downgrade_retained_step_free_service() {
+    let mut h = history();
+    install(&mut h);
+    assert!(matches!(
+        evaluate(
+            &h.current().network,
+            &request(),
+            &fares(&["bus"], 250),
+            "USD",
+            1000
+        )
+        .unwrap()
+        .outcome,
+        Outcome::Journey(_)
+    ));
+    let saved = h.clone();
+    let mut downgraded = service();
+    downgraded.rides[0].id = EdgeId(999);
+    downgraded.rides[0].access = Access::Steps;
+    assert!(h
+        .apply(&batch(
+            &h,
+            "fresh-id-downgrade",
+            vec![Change::Transit(downgraded)]
+        ))
+        .unwrap_err()
+        .0
+        .contains("accessible"));
+    assert_eq!(h, saved);
+}
+#[test]
 fn e11_s06_run_limit_also_bounds_out_of_coverage_departures_examined() {
     let mut h = history();
     install(&mut h);

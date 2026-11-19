@@ -170,12 +170,12 @@ Compilation is excluded. Timings are illustrative, not acceptance thresholds.
 
 | Runs per template | Preview mean µs | Route mean µs |
 | ---: | ---: | ---: |
-| 1 | 8.249 | 2.332 |
-| 32 | 10.501 | 9.670 |
-| 128 | 18.860 | 10.349 |
-| 512 | 56.178 | 11.421 |
+| 1 | 8.571 | 2.483 |
+| 32 | 10.611 | 9.877 |
+| 128 | 18.593 | 10.866 |
+| 512 | 56.608 | 11.539 |
 
-A separate complete process run reported 2,818,048 bytes maximum resident set
+A separate complete process run reported 2,883,584 bytes maximum resident set
 (macOS `time -l`), including the demo and all sizes, not per-preview heap usage.
 Queries scan timetable entries even beyond their deadline, but only retain legal
 states inside it. These results do not establish metro-scale performance.

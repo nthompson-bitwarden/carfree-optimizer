@@ -168,6 +168,24 @@ pub(crate) fn service(
             )?;
         }
     }
+    // Retained directed service legs keep known accessible status independently
+    // of edge IDs (including shifted stop indices after inserting a new stop).
+    for old in d
+        .links
+        .iter()
+        .filter(|l| matches!(&l.kind, LinkKind::Transit { trip, .. } if trip == &proposal.trip))
+    {
+        if old.access == Access::Accessible {
+            require(
+                proposal
+                    .rides
+                    .iter()
+                    .filter(|l| l.from == old.from && l.to == old.to)
+                    .all(|l| l.access == Access::Accessible),
+                "retained service leg cannot downgrade accessible ride under a new edge ID",
+            )?;
+        }
+    }
     // Allocated physical space cannot be silently orphaned, moved or changed mode.
     for old in d
         .links
