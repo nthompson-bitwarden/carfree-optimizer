@@ -253,3 +253,51 @@ explicit E11 bounds, and suspension enumeration caps examined events at one
 million. Bounds exhaustion rejects rather than implying a suspended service.
 Risk estimation multiplies three supplied rates by exposure and validates fixed
 metadata, using existing provenance graph validation; it never runs simulation.
+
+## E13 scoring
+
+```sh
+cargo build --release --locked --offline -p accessibility --example e13_scoring
+/usr/bin/time -l target/release/examples/e13_scoring --bench
+```
+
+E13-v1 is the MIT repository-authored abstract fixture in
+`crates/accessibility/tests/support/mod.rs`, dated 2026-11-19. The example generates
+100/1,000/10,000 uniquely labeled destinations, one departure, identical fixed
+60-second car-free / 40-second car journeys and explicit metadata. It measures
+50 full `access` calls per size, with `black_box` barriers. Fixture construction
+and compilation are outside timing; result allocation, validation, inventory
+copy and percentile sort are inside. No random seed, warmup, CI or performance
+threshold is claimed. Actual E07 routing and E08 simulation are **not** timed;
+use their separate benchmark commands above and in SIMULATION.md.
+
+Measured in release profile on macOS arm64, Rust 1.97.1 before the E13 delivery
+commit: mean 23.56 µs (100 cells), 232.74 µs (1,000), 2,145.39 µs (10,000).
+Whole-process peak RSS was 5,914,624 bytes across all sizes, elapsed 0.26 s.
+These are one run's means, not percentiles or confidence bounds. Memory includes
+setup/allocator effects and is not per-size RSS. Context graph tokens are tiny
+synthetic bindings, not a regional graph; exact graph bytes in real outputs add
+memory proportional to graph size per retained context. No metro-scale claim.
+
+Scoring is O(P log P) time/O(P) working memory for P destination/departure cells;
+trip, space and emissions ordered-map rollups are O(N log N). Pairwise Pareto is
+O(C² M), M=4, plus binding-key validation; it is not measured by this arithmetic
+fixture. A separate reference frontier workload exercises all-pairs dominance:
+
+```sh
+cargo build --release --locked --offline -p accessibility --example e13_frontier
+/usr/bin/time -l target/release/examples/e13_frontier
+```
+
+`E13-frontier-v1` constructs 16/64/256 actual E12-screened synthetic candidates
+outside timing. All four objectives tie, so all candidates remain nondominated
+and no dominance search exits early. One correctness warmup precedes 20 timed
+full `pareto` calls per size. On the same release toolchain, measured means were
+30.87/82.60/360.70 µs respectively; whole-process peak RSS 12,697,600 bytes,
+elapsed 0.28 s including setup. Snapshot/key validation, cloning returned contexts,
+allocation and comparisons are timed together. This is not an isolated SIMD
+comparison benchmark or proof of quadratic growth at these small sizes.
+
+The [scoring contract](ACCESSIBILITY-SCORING.md) documents bounds and upstream
+bridge execution separately. No observed inputs or scientific fidelity are
+inferred from these timings.
