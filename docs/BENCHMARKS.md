@@ -154,3 +154,46 @@ projection is O(L + active_roads·periods) time/space, not another capacity addi
 This workload measures editor validation and snapshot overhead. Its disconnected
 replicas and small OD sample do not establish regional simulation throughput,
 large-city routing, engineering feasibility, observed diversion or calibration.
+
+## E11 transit service design
+
+```sh
+rustup run 1.97.1 cargo run --release --locked --offline -p interventions --example e11_transit -- --benchmark
+/usr/bin/time -l target/release/examples/e11_transit --benchmark
+```
+
+Measured on Apple M5 Pro arm64, Rust 1.97.1 release profile. The repository-authored
+MIT abstract E11 fixture dated 2026-01-05 uses modeled values only, no randomness,
+one service day, one directed pattern, seven nodes and explicit frequency runs.
+Each row averages 50 previews and 50 physical queries (500-second deadline).
+Compilation is excluded. Timings are illustrative, not acceptance thresholds.
+
+| Runs per template | Preview mean µs | Route mean µs |
+| ---: | ---: | ---: |
+| 1 | 8.571 | 2.483 |
+| 32 | 10.611 | 9.877 |
+| 128 | 18.593 | 10.866 |
+| 512 | 56.608 | 11.539 |
+
+A separate complete process run reported 2,883,584 bytes maximum resident set
+(macOS `time -l`), including the demo and all sizes, not per-preview heap usage.
+Queries scan timetable entries even beyond their deadline, but only retain legal
+states inside it. These results do not establish metro-scale performance.
+
+Beyond the E10 graph rebuild/history and access-query costs above, each managed
+pattern scans E links, sorts its k legs and expands r final-leg departures into
+an O(r) map. It examines at most B date/run instances (including excluded ones on
+overlapping days), sorts 2a duty events for a included runs, and uses
+O(E + k log k + r log r + D + B log r + a log a) time and O(k+r+a) auxiliary
+space. D is the number of supplied service days; completely irrelevant days are
+skipped. B is the explicit `max_run_instances`, capped at one million; template
+expansion is bounded by it too. Endpoint/station opportunity scans have a
+one-million examination cap per check and include transfer-window lookups.
+Across T patterns and A affected station/mode/action checks these costs repeat;
+there is no shared service index. E05 full-graph validation still expands full
+trip timetables independently of the E11 estimator bound. Fare scoring adds one
+pass over journey steps plus fare-provenance validation on boardings; physical
+routing remains the bounded E07 search, not a polynomial metro-routing claim.
+History retains full snapshots and sidecars as in E10. Fleet estimates omit
+interlining and labor constraints; synthetic accounting performance says nothing
+about calibration, physical feasibility or operating commitments.

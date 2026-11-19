@@ -3,6 +3,7 @@
 pub mod corridor;
 pub mod evaluation;
 pub mod scenario;
+pub mod transit;
 
 use mobility_graph::EdgeId;
 

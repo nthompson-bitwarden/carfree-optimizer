@@ -74,6 +74,10 @@ pub struct Continuity {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Change {
+    /// E11 complete directed service replacement, including explicit operations.
+    Transit(crate::transit::Service),
+    /// E11 station topology and off-road access/parking/transfer facilities.
+    Station(crate::transit::Station),
     /// Entire explicit replacement link, including travel time and safety.
     /// Existing targets must retain their mode and endpoints.
     Allocate {
@@ -156,6 +160,8 @@ pub struct SnapshotData {
     pub land_use_revision: Option<String>,
     pub provenance: Provenance,
     pub continuity: Vec<Continuity>,
+    /// E11 modeled operations, recomputed for each committed transport version.
+    pub transit: BTreeMap<String, crate::transit::Record>,
 }
 impl std::ops::Deref for Snapshot {
     type Target = SnapshotData;
@@ -244,7 +250,7 @@ pub struct History {
     used_ids: BTreeSet<String>,
     requirements: Vec<Requirement>,
 }
-fn validate_provenance(n: &Network, p: &Provenance, modeled: bool) -> Result<(), Error> {
+pub(crate) fn validate_provenance(n: &Network, p: &Provenance, modeled: bool) -> Result<(), Error> {
     require(
         !modeled || p.basis == Basis::Modeled,
         "interventions must be labeled modeled",
@@ -348,7 +354,7 @@ fn validate_replacement(old: &Link, new: &Link) -> Result<(), Error> {
     }
     Ok(())
 }
-fn validate_assessment(
+pub(crate) fn validate_assessment(
     n: &Network,
     link: &Link,
     assessment: &CrossingAssessment,
@@ -501,6 +507,7 @@ impl History {
                 destinations: vec![],
                 land_use_revision: None,
                 continuity: vec![],
+                transit: BTreeMap::new(),
             },
         };
         Ok(Self {
@@ -539,14 +546,28 @@ impl History {
         )?;
         require(!batch.changes.is_empty(), "empty edit batch")?;
         validate_provenance(&parent.network, &batch.provenance, true)?;
+        crate::transit::validate_batch(&parent.network, &batch.changes)?;
         let mut s = parent.data.clone();
         let mut d = s.network.data().clone();
         let mut transport = false;
         let mut closes = false;
         let mut targets = BTreeSet::new();
         let mut land_use_changed = false;
+        let mut service_targets = BTreeSet::new();
         for c in &batch.changes {
             match c {
+                Change::Transit(service) => {
+                    require(
+                        service_targets.insert(service.trip.clone()),
+                        "duplicate service replacement in batch",
+                    )?;
+                    crate::transit::service(&mut s, &mut d, service, &batch.provenance)?;
+                    transport = true;
+                }
+                Change::Station(station) => {
+                    crate::transit::station(&mut s, &mut d, station)?;
+                    transport = true;
+                }
                 Change::Allocate {
                     road,
                     lanes,
@@ -820,6 +841,22 @@ impl History {
             d.revision = batch.id.clone();
             d.provenance = batch.provenance.clone();
             s.network = Network::new(d).map_err(|e| Error(e.to_string()))?;
+            for (trip, record) in &mut s.transit {
+                record.estimate = crate::transit::estimate(&s.network, trip, &record.operations)?;
+            }
+            if !s.transit.is_empty()
+                || batch
+                    .changes
+                    .iter()
+                    .any(|c| matches!(c, Change::Station(_)))
+            {
+                crate::transit::validate_facilities(&parent.network, &s.network, &s.transit)?;
+                crate::transit::validate_station_opportunities(
+                    &parent.network,
+                    &s.network,
+                    &batch.changes,
+                )?;
+            }
         }
         s.continuity = self
             .requirements
