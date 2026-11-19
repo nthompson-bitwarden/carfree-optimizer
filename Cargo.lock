@@ -5,6 +5,12 @@ version = 4
 [[package]]
 name = "accessibility"
 version = "0.1.0"
+dependencies = [
+ "interventions",
+ "mobility-graph",
+ "mobility-routing",
+ "mobility-sim",
+]
 
 [[package]]
 name = "adler2"

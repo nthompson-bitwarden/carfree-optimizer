@@ -1,4 +1,13 @@
-//! Car-free accessibility metric primitives. No demand or routing model yet.
+//! Deterministic E13 scoring over explicit caller-supplied evidence.
+//! Synthetic reference scores never establish real-world car independence.
+pub mod comparison;
+pub mod demand_binding;
+pub mod footprints;
+pub mod intervals;
+pub mod projection;
+pub mod scoring;
+pub mod spatial;
+pub mod upstream;
 
 /// Fraction of destinations reachable within a travel-time threshold.
 /// Counts are illustrative inputs; the caller must provide valid observations.

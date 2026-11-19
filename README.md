@@ -48,7 +48,7 @@ The full product backlog is in [backlog/car_independence_backlog.md](backlog/car
 crates/mobility-graph     validated multimodal network and canonical binary schema
 crates/mobility-ingest    geography, project snapshots and offline public-data connectors
 crates/mobility-routing   time-aware door-node planning, batches and window statistics
-crates/accessibility     access and parity metric primitives
+crates/accessibility     explicit accessibility, equity and scenario-scoring evidence
 crates/interventions     atomic infrastructure scenarios, access checks and version history
 crates/mobility-sim      demand, simulation, sensitivity and calibration/holdout reports
 crates/optimizer-env     planning environment interfaces
@@ -79,6 +79,23 @@ identify ownership, APIs, tests, and prohibited changes for all nine domain crat
 No runtime external input downloads, source-to-routing-network adapter, HTTP
 service, calibrated simulator or Python bindings have been wired up. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
+
+## Car-independence, accessibility and equity scores
+
+[E13 scoring](docs/ACCESSIBILITY-SCORING.md) provides explicit destination/window
+access, physical car-free/car comparisons, trip and mobility-cohort denominators,
+coverage-aware neighborhood maps, deduplicated physical space, bounded operational
+emissions, constrained Pareto comparisons and weather/service rankings. All scores
+retain provenance, behavioral horizon, missingness and scientific limitations.
+
+```sh
+cargo run --locked --offline -p accessibility --example e13_scoring > /tmp/e13-scoring.html
+```
+
+The demo uses arbitrary synthetic inputs and abstract map coordinates. Effective
+E08 car-required share remains unavailable without complete effective-view
+alternatives; E06 reference feasibility is labeled separately. No score or
+frontier establishes empirical calibration or authorizes policy recommendations.
 
 ## Feasibility, budgets and construction phases
 
