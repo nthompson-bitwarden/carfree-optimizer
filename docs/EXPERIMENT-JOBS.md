@@ -127,6 +127,11 @@ ssh -N -L 8765:127.0.0.1:8765 COORDINATOR_HOST
 # In another terminal on the worker, use the same client commands and token.
 ```
 
+Clients require the exact `http://127.0.0.1:PORT` authority (no userinfo, path,
+query or fragment), disable environment/system HTTP proxies and reject all
+redirects so bearer capabilities cannot escape the SSH tunnel. Regression tests
+exercise proxy interception, redirect targets and misleading URL authorities.
+
 Do not expose the plaintext endpoint publicly; there is no multi-user authorization
 or rate limiting. One token grants trusted operator access to every operation.
 Use OS account boundaries, a private database directory, SSH authentication and

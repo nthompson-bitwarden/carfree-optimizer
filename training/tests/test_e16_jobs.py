@@ -1,6 +1,8 @@
 """E16 Given/When/Then durable orchestration acceptance (stdlib only)."""
 import hashlib
 import json
+import os
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import secrets
 import tempfile
 import threading
@@ -166,6 +168,72 @@ class Jobs(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     worker(client, "/missing-evaluator", "unsupported", once=True)
             client.call.assert_not_called()
+
+    def test_security_rejects_noncanonical_loopback_authorities(self):
+        for url in ("http://127.0.0.1:8765@evil.invalid", "https://127.0.0.1:8765",
+                    "http://user:pass@127.0.0.1:8765", "http://127.0.0.1", "http://127.0.0.1:0",
+                    "http://127.0.0.1:65536", "http://127.0.0.1:abc", "http://127.0.0.1:8765/",
+                    "http://127.0.0.1:8765/path", "http://127.0.0.1:8765?q=x",
+                    "http://127.0.0.1:8765#fragment", "http://127.0.0.1:8765?",
+                    "http://127.0.0.1:8765\n", "http://localhost:8765"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                Client(url, "synthetic-test-token")
+
+    def http_server(self, handler):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        self.addCleanup(server.server_close)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        return f"http://127.0.0.1:{server.server_port}"
+
+    def test_security_environment_proxies_never_receive_bearer(self):
+        hits = []
+        class Proxy(BaseHTTPRequestHandler):
+            def log_message(self, *_):
+                pass
+            def do_POST(self):
+                hits.append(self.headers.get("Authorization"))
+                self.send_response(502)
+                self.end_headers()
+        proxy = self.http_server(Proxy)
+        server = serve(self.store, "synthetic-test-token", port=0)
+        self.addCleanup(server.server_close)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        environment = {"http_proxy": proxy, "HTTP_PROXY": proxy, "all_proxy": proxy,
+                       "ALL_PROXY": proxy, "no_proxy": "", "NO_PROXY": ""}
+        with patch.dict(os.environ, environment):
+            client = Client(f"http://127.0.0.1:{server.server_port}", "synthetic-test-token")
+            self.assertEqual(client.call("submit", spec=self.spec), self.submit())
+        self.assertEqual(hits, [], "no proxy may receive a bearer capability")
+
+    def test_security_redirects_never_forward_bearer(self):
+        hits = []
+        class Target(BaseHTTPRequestHandler):
+            def log_message(self, *_):
+                pass
+            def do_GET(self):
+                hits.append(self.headers.get("Authorization"))
+                self.send_response(200)
+                self.end_headers()
+            do_POST = do_GET
+        target = self.http_server(Target)
+        codes = [301, 302, 303, 307, 308]
+        class Redirect(BaseHTTPRequestHandler):
+            def log_message(self, *_):
+                pass
+            def do_POST(self):
+                self.send_response(codes.pop(0))
+                self.send_header("Location", target + "/capture")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+        origin = self.http_server(Redirect)
+        client = Client(origin, "synthetic-test-token")
+        for _ in range(5):
+            with self.assertRaises(ValueError):
+                client.call("status", job="x")
+        self.assertEqual(hits, [], "redirect targets must never receive the capability")
+        self.assertEqual(codes, [])
 
     def test_validation_and_missing_costs(self):
         for change in (dict(seeds=[7, 7]), dict(cpu_seconds=0), dict(episodes=True),

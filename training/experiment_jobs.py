@@ -26,7 +26,8 @@ import tempfile
 import threading
 import time
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+from urllib.request import Request, build_opener, ProxyHandler, HTTPRedirectHandler
 
 SCHEMA = "e16-jobs-v1/e14-synthetic-v1"
 LOG_BYTES = 32768
@@ -363,18 +364,34 @@ def serve(store, secret, port=8765):
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
 
 
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None  # urllib raises HTTPError; Client closes its response handle
+
+
 class Client:
     def __init__(self, url, secret):
-        if not url.startswith("http://127.0.0.1:"):
-            raise ValueError("use a loopback SSH tunnel URL, http://127.0.0.1:PORT")
-        self.url, self.secret = url.rstrip("/"), secret
+        try:
+            parsed = urlsplit(url)
+            port = parsed.port
+            valid = (parsed.scheme == "http" and parsed.hostname == "127.0.0.1"
+                     and port is not None and 1 <= port <= 65535
+                     and url == f"http://127.0.0.1:{port}")
+        except (ValueError, TypeError, AttributeError):
+            valid = False
+        if not valid:
+            raise ValueError("use exactly http://127.0.0.1:PORT, without credentials, path, query or fragment")
+        self.url, self.secret = url, secret
+        # Never route bearer capabilities through environment/system proxies or
+        # forward them across redirects, including to a different loopback port.
+        self.opener = build_opener(ProxyHandler({}), NoRedirect())
 
     def call(self, method, **args):
         request = Request(self.url + "/" + method, data=encoded(args).encode(),
                           headers={"Authorization": "Bearer " + self.secret,
                                    "Content-Type": "application/json"})
         try:
-            with urlopen(request, timeout=5) as response:
+            with self.opener.open(request, timeout=5) as response:
                 value = json.load(response)
         except HTTPError as e:
             with e:
