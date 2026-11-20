@@ -126,7 +126,7 @@ Install the training-only dependencies in an isolated environment:
 ```sh
 python3 -m venv .codex/run/e14-venv
 .codex/run/e14-venv/bin/python -m pip install -r training/requirements.txt
-cargo build --locked --offline -p optimizer-bridge --example e14_batch
+cargo build --locked --offline -p optimizer-bridge --examples
 PYTHONPATH=training .codex/run/e14-venv/bin/python -m unittest discover -s training/tests -v
 ```
 
