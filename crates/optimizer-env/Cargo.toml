@@ -5,3 +5,7 @@ edition.workspace = true
 
 [dependencies]
 interventions = { path = "../interventions" }
+accessibility = { path = "../accessibility" }
+mobility-graph = { path = "../mobility-graph" }
+mobility-routing = { path = "../mobility-routing" }
+mobility-sim = { path = "../mobility-sim" }

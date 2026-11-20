@@ -51,11 +51,11 @@ crates/mobility-routing   time-aware door-node planning, batches and window stat
 crates/accessibility     explicit accessibility, equity and scenario-scoring evidence
 crates/interventions     atomic infrastructure scenarios, access checks and version history
 crates/mobility-sim      demand, simulation, sensitivity and calibration/holdout reports
-crates/optimizer-env     planning environment interfaces
-crates/optimizer-bridge  training bindings boundary (not implemented)
+crates/optimizer-env     constrained reference episodes, actions, rewards and observations
+crates/optimizer-bridge  bounded Rust batch transport for training
 crates/mobility-api      offline search/onboarding CLIs and static HTML reports
 benchmarks/             synthetic metric fixture, Rust harness, measured history
-training/                future PyTorch training integration
+training/                Gymnasium adapter, integration checks and batch profiling
 web/                     future Svelte/MapLibre app
 backlog/                 full prioritized user stories
 docs/                    architecture and decisions
@@ -77,8 +77,26 @@ primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
 identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
 
 No runtime external input downloads, source-to-routing-network adapter, HTTP
-service, calibrated simulator or Python bindings have been wired up. Synthetic
+service or calibrated simulator have been wired up. Python training uses an
+explicit bounded process binding, not an in-process extension. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
+
+## Constrained reference optimization environment
+
+[E14](docs/RL-ENVIRONMENT.md) adds versioned sequential transport-only episodes,
+inspectable indexed projects and masks, cumulative capital/annual commitments,
+decomposed configurable rewards and hard mobility safeguards. Rust performs
+scenario screening, simulation and scoring; a bounded persistent process binding
+provides training-only Gymnasium compatibility. Graph-message versus vector
+policy experiments use disjoint **synthetic** topologies, not observed cities.
+
+```sh
+cargo run --locked --offline -p optimizer-bridge --example e14_experiments
+```
+
+Reference-network car dependence is explicitly separate from E08 assignments;
+these inputs are not calibrated and do not authorize policy recommendations.
+See the [schema, Python setup, tests and profiling guide](docs/RL-ENVIRONMENT.md).
 
 ## Car-independence, accessibility and equity scores
 

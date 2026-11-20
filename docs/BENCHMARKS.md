@@ -26,6 +26,17 @@ O(fixture rows) harness memory. Peak memory is not measured. This small workload
 does not establish import, routing, city simulation, FFI, training, or independent
 scientific validation performance.
 
+## E14 environment and batch binding
+
+[E14 measured profiling and complexity](RL-ENVIRONMENT.md#complexity-and-profiling-s06)
+cover sequential Rust reset/step roundtrips at 1/8/32/64 slots, with raw latency,
+throughput, peak RSS, compiler and source/binary hashes retained under
+[`benchmarks/e14`](../benchmarks/e14/). Separate equally budgeted synthetic
+graph-message/vector transfer and reward-ablation results retain common raw
+outcomes; they do not establish graph superiority or observed cross-city fidelity.
+See [ADR 0005](adr/0005-bounded-rl-process-binding.md) for the dependency decision.
+These measurements are independent of the primitive-history schema below.
+
 ## Routing benchmarks
 
 [E07 routing measurements](ROUTING.md#complexity-and-performance-evidence-s07)

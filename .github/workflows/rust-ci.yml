@@ -20,3 +20,8 @@ jobs:
       - run: cargo test --workspace --locked
       - run: python3 scripts/check-dependencies.py
       - run: python3 -m unittest discover -s tests/foundations -v
+      - run: python3 -m pip install -r training/requirements.txt
+      - run: cargo build --locked --offline -p optimizer-bridge --examples
+      - run: cargo test --locked --offline -p optimizer-bridge --example e14_experiments
+      - run: python3 -m compileall -q training
+      - run: PYTHONPATH=training python3 -m unittest discover -s training/tests -v
