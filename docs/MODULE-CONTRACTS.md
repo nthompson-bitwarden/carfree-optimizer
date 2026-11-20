@@ -30,8 +30,10 @@ The separate `foundations-benchmark` executable in `benchmarks/harness/**` is
 validation tooling, not a tenth domain engine. Its fixture, history schema,
 complexity, and limitations are documented in [BENCHMARKS.md](BENCHMARKS.md).
 Python scripts orchestrate validation, offline source-fixture preparation and
-training-only Gymnasium transport; search, environment transitions and timed
-metric computation stay Rust. The E02-S01 source
+training-only Gymnasium transport. The [E15 benchmark](OPTIMIZATION.md) adds
+synthetic topology/demand selection and training-only optimization search in
+Python over the unchanged E14 wire. Geography search, environment transitions,
+scoring and timed metric computation remain in Rust. The E02-S01 source
 preparation helper and versioned fixtures live in `scripts/prepare-geography.py`
 and `fixtures/geography/**`; they do not implement a live download service.
 

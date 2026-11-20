@@ -431,7 +431,9 @@ fn catalog() -> Result<Catalog<Project>, crate::catalog::Error> {
     )
 }
 
-fn demand(revision: &str) -> d::Demand {
+fn demand(revision: &str, mix: u32) -> d::Demand {
+    let adults = 4 + mix;
+    let protected_count = 2 + mix % 3;
     use d::TravelMode::{Car, Transit, Walk};
     let load = d::Load {
         cargo_grams: 0,
@@ -471,7 +473,7 @@ fn demand(revision: &str) -> d::Demand {
                 deadline_utc: if protected { 120 } else { 25 },
                 purpose: d::Purpose::Healthcare,
                 essential: true,
-                expansion_weight: if protected { 2.0 } else { 4.0 },
+                expansion_weight: f64::from(if protected { protected_count } else { adults }),
                 load,
                 dwell_seconds: 0,
                 costs: modes
@@ -492,7 +494,11 @@ fn demand(revision: &str) -> d::Demand {
         .collect();
     d::Demand {
         version: d::VERSION,
-        revision: "e14-synthetic-demand-v1".into(),
+        revision: if mix == 0 {
+            "e14-synthetic-demand-v1".into()
+        } else {
+            format!("e15-synthetic-demand-v1-{mix}")
+        },
         network_revision: revision.into(),
         provenance: provenance(),
         population: d::Population {
@@ -500,12 +506,16 @@ fn demand(revision: &str) -> d::Demand {
             tolerance_persons: 0,
             zones: vec![d::Zone {
                 id: "abstract-origin".into(),
-                source_persons: 6,
+                source_persons: u64::from(adults + protected_count),
                 strata: groups
                     .iter()
                     .map(|&(id, protected, _)| d::Stratum {
                         group: id.into(),
-                        modeled_persons: if protected { 2 } else { 4 },
+                        modeled_persons: u64::from(if protected {
+                            protected_count
+                        } else {
+                            adults
+                        }),
                         representatives: 1,
                     })
                     .collect(),
@@ -518,6 +528,14 @@ fn demand(revision: &str) -> d::Demand {
 
 /// Rich fixture configuration for Rust diagnostics and graph experiments.
 pub fn configuration(topology: usize) -> Result<Config, String> {
+    benchmark_configuration(topology, 0)
+}
+
+/// E15 synthetic benchmark: independent topology and demand-mix selectors.
+pub fn benchmark_configuration(topology: usize, mix: u32) -> Result<Config, String> {
+    if mix > 16 {
+        return Err("synthetic demand mix must be in 0..=16".into());
+    }
     if topology >= TOPOLOGIES {
         return Err(format!("synthetic topology must be in 0..{TOPOLOGIES}"));
     }
@@ -538,7 +556,7 @@ pub fn configuration(topology: usize) -> Result<Config, String> {
             provenance: provenance(),
         })
         .collect();
-    let demand = demand(&network.data().revision);
+    let demand = demand(&network.data().revision, mix);
     let context = Context {
         scenario: "opening".into(),
         graph_revision: network.data().revision.clone(),
