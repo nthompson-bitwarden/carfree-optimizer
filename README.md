@@ -312,6 +312,13 @@ See the [demand contract](docs/TRAVEL-DEMAND.md) for inputs, generalized cost,
 population reconciliation, essential-trip shortfall and separate long-horizon
 sensitivity. Results apply only to supplied departures and assumptions.
 
+## Saved workspaces and exports
+
+The spatial workbench supports opt-in saved Census study areas, synthetic
+scenario revisions, evaluation jobs, project roles and read-only share links.
+See the [workspace demo and API](docs/WORKSPACES.md) for JSON/Parquet exports
+and standalone schematic maps and reports.
+
 ## Agent-assisted issue delivery
 
 The primary Codex session coordinates implementation and delivery, reusing two

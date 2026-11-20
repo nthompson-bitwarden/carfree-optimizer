@@ -1,0 +1,1172 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Carfree workspaces",
+    "version": "1.0.0",
+    "description": "Opt-in IPv4-loopback workspace for the Census onboarding and uncalibrated synthetic workbench fixtures. Each job belongs to one immutable scenario revision. This API does not manage E16 distributed jobs."
+  },
+  "servers": [{"url": "/api/e19/v1"}],
+  "paths": {
+    "/openapi.json": {
+      "parameters": [],
+      "get": {
+        "operationId": "getOpenApi",
+        "security": [],
+        "responses": {
+          "200": {"description": "Success", "content": {"application/json": {"schema": {"type": "object"}}}},
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/cities": {
+      "parameters": [],
+      "get": {
+        "operationId": "listCities",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 2}
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/cities/{area}/{date}": {
+      "parameters": [{"$ref": "#/components/parameters/area"}, {"$ref": "#/components/parameters/date"}],
+      "get": {
+        "operationId": "getCity",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/City"}}}
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/extensions": {
+      "parameters": [],
+      "get": {
+        "operationId": "getExtensionContracts",
+        "security": [],
+        "responses": {
+          "200": {"description": "Success", "content": {"application/json": {"schema": {"type": "object"}}}},
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/extensions/validate": {
+      "parameters": [],
+      "post": {
+        "operationId": "validateExtension",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Extension"}}}
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "version", "contract", "compatible"],
+                  "properties": {
+                    "id": {"type": "string"},
+                    "version": {"const": 1},
+                    "contract": {"type": "string"},
+                    "compatible": {"const": true}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/shares/{token}": {
+      "parameters": [{"$ref": "#/components/parameters/token"}],
+      "get": {
+        "operationId": "readPublishedProjection",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {"schema": {"$ref": "#/components/schemas/PublicScenario"}},
+              "text/html": {"schema": {"type": "string"}},
+              "image/svg+xml": {"schema": {"type": "string"}}
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects": {
+      "parameters": [],
+      "get": {
+        "operationId": "listProjects",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["projects"],
+                  "properties": {
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "title", "area", "date", "role", "stale"],
+                        "properties": {
+                          "id": {"type": "integer", "minimum": 1},
+                          "title": {"type": "string"},
+                          "area": {"type": "string"},
+                          "date": {"type": "string", "format": "date"},
+                          "role": {"type": "string", "enum": ["owner", "editor", "viewer"]},
+                          "stale": {"enum": [null, "saved_city_snapshot_changed", "evaluator_changed"]}
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      },
+      "post": {
+        "operationId": "createProject",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner.",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProjectInput"}}}
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {"id": {"type": "integer", "minimum": 1}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}": {
+      "parameters": [{"$ref": "#/components/parameters/project"}],
+      "get": {
+        "operationId": "getProject",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "title", "area", "date", "role", "stale", "inputs", "city", "scenarios"],
+                  "properties": {
+                    "id": {"type": "integer", "minimum": 1},
+                    "title": {"type": "string"},
+                    "area": {"type": "string"},
+                    "date": {"type": "string", "format": "date"},
+                    "role": {"type": "string", "enum": ["owner", "editor", "viewer"]},
+                    "stale": {"enum": [null, "saved_city_snapshot_changed", "evaluator_changed"]},
+                    "inputs": {"$ref": "#/components/schemas/Inputs"},
+                    "city": {"$ref": "#/components/schemas/City"},
+                    "scenarios": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "title", "revisions"],
+                        "properties": {
+                          "id": {"type": "integer", "minimum": 1},
+                          "title": {"type": "string"},
+                          "revisions": {"type": "integer", "minimum": 0}
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/members": {
+      "parameters": [{"$ref": "#/components/parameters/project"}],
+      "get": {
+        "operationId": "listMembers",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["members"],
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "role"],
+                        "properties": {
+                          "id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                          "role": {"type": "string", "enum": ["owner", "editor", "viewer"]}
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      },
+      "post": {
+        "operationId": "grantMember",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner. Credential is returned only when created.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {"role": {"type": "string", "enum": ["editor", "viewer"]}},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "role", "token"],
+                  "properties": {
+                    "id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "role": {"type": "string", "enum": ["owner", "editor", "viewer"]},
+                    "token": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/members/{member}": {
+      "parameters": [{"$ref": "#/components/parameters/project"}, {"$ref": "#/components/parameters/member"}],
+      "delete": {
+        "operationId": "revokeMember",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["revoked"],
+                  "properties": {"revoked": {"const": true}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/shares": {
+      "parameters": [{"$ref": "#/components/parameters/project"}],
+      "get": {
+        "operationId": "listPublishedProjections",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["shares"],
+                  "properties": {
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "projection"],
+                        "properties": {
+                          "id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                          "projection": {"type": "string", "enum": ["scenario", "report", "map"]}
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/shares/{share}": {
+      "parameters": [{"$ref": "#/components/parameters/project"}, {"$ref": "#/components/parameters/share"}],
+      "delete": {
+        "operationId": "revokePublication",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["revoked"],
+                  "properties": {"revoked": {"const": true}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios": {
+      "parameters": [{"$ref": "#/components/parameters/project"}],
+      "post": {
+        "operationId": "createScenario",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner or editor.",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ScenarioInput"}}}
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "revision"],
+                  "properties": {"id": {"type": "integer", "minimum": 1}, "revision": {"type": "integer", "minimum": 1}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions": {
+      "parameters": [{"$ref": "#/components/parameters/project"}, {"$ref": "#/components/parameters/scenario"}],
+      "get": {
+        "operationId": "listRevisions",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["title", "revisions"],
+                  "properties": {
+                    "title": {"type": "string"},
+                    "revisions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "plan", "review"],
+                        "properties": {
+                          "id": {"type": "integer", "minimum": 1},
+                          "plan": {"$ref": "#/components/schemas/Plan"},
+                          "review": {"type": "string", "enum": ["draft", "in_review", "approved", "changes_requested"]}
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      },
+      "post": {
+        "operationId": "appendRevision",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner or editor.",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Plan"}}}},
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {"id": {"type": "integer", "minimum": 1}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "get": {
+        "operationId": "getRevision",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Revision"}}}
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/jobs": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "get": {
+        "operationId": "getJob",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Job"}}}
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      },
+      "post": {
+        "operationId": "evaluateRevision",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner or editor. Synchronous bounded workbench evaluation with durable status. Repeated successful submission returns the completed job status and its link.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "job"],
+                  "properties": {"status": {"type": "string", "enum": ["completed", "failed"]}, "job": {"type": "string"}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/evaluation": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "get": {
+        "operationId": "getEvaluation",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Evaluation"}}}
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/exports/{artifact}": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"},
+        {"$ref": "#/components/parameters/artifact"}
+      ],
+      "get": {
+        "operationId": "getExport",
+        "security": [{"workspaceBearer": []}],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [{"$ref": "#/components/schemas/Evaluation"}, {"$ref": "#/components/schemas/Manifest"}]
+                }
+              },
+              "application/vnd.apache.parquet": {"schema": {"type": "string", "format": "binary"}},
+              "text/html": {"schema": {"type": "string"}},
+              "image/svg+xml": {"schema": {"type": "string"}}
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/comments": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "post": {
+        "operationId": "addComment",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner or editor. Text limits apply to UTF-8 bytes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "revision"],
+                  "properties": {"id": {"type": "integer", "minimum": 1}, "revision": {"type": "integer", "minimum": 1}},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/review": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "put": {
+        "operationId": "setReviewState",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner or editor. Entering or leaving approved or changes_requested requires owner.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["state"],
+                "properties": {"state": {"type": "string", "enum": ["draft", "in_review", "approved", "changes_requested"]}},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["state", "revision"],
+                  "properties": {
+                    "state": {"type": "string", "enum": ["draft", "in_review", "approved", "changes_requested"]},
+                    "revision": {"type": "integer", "minimum": 1}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    },
+    "/projects/{project}/scenarios/{scenario}/revisions/{revision}/shares": {
+      "parameters": [
+        {"$ref": "#/components/parameters/project"},
+        {"$ref": "#/components/parameters/scenario"},
+        {"$ref": "#/components/parameters/revision"}
+      ],
+      "post": {
+        "operationId": "publishProjection",
+        "security": [{"workspaceBearer": []}],
+        "description": "Owner. Publishes one immutable projection to an unauthenticated capability URL.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["projection"],
+                "properties": {"projection": {"type": "string", "enum": ["scenario", "report", "map"]}},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "path", "projection"],
+                  "properties": {
+                    "id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "path": {"type": "string"},
+                    "projection": {"type": "string", "enum": ["scenario", "report", "map"]}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {"$ref": "#/components/responses/400"},
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {"$ref": "#/components/responses/409"},
+          "413": {"$ref": "#/components/responses/413"},
+          "431": {"$ref": "#/components/responses/431"},
+          "500": {"$ref": "#/components/responses/500"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"workspaceBearer": {"type": "http", "scheme": "bearer"}},
+    "parameters": {
+      "project": {"name": "project", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}},
+      "scenario": {"name": "scenario", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}},
+      "revision": {"name": "revision", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}},
+      "member": {
+        "name": "member",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "share": {
+        "name": "share",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "token": {
+        "name": "token",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "area": {"name": "area", "in": "path", "required": true, "schema": {"type": "string"}},
+      "date": {"name": "date", "in": "path", "required": true, "schema": {"type": "string", "format": "date"}},
+      "artifact": {
+        "name": "artifact",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": ["scenario.json", "manifest.json", "metrics.parquet", "report.html", "map.svg"]
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {"code": {"type": "string"}, "message": {"type": "string"}},
+        "additionalProperties": false
+      },
+      "HttpError": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {"error": {"type": "string"}},
+        "additionalProperties": false
+      },
+      "ProjectInput": {
+        "type": "object",
+        "required": ["title", "area", "date"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1, "maxLength": 120},
+          "area": {"type": "string", "pattern": "^(place|cbsa):[0-9]+$"},
+          "date": {"type": "string", "format": "date"}
+        },
+        "additionalProperties": false
+      },
+      "Plan": {
+        "type": "object",
+        "required": ["projects", "width", "capital", "annual"],
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {"type": "integer", "minimum": 0, "maximum": 2},
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "width": {"type": "integer", "minimum": 1500, "maximum": 8000},
+          "capital": {"type": "integer", "minimum": 0, "maximum": 10000},
+          "annual": {"type": "integer", "minimum": 0, "maximum": 10000}
+        },
+        "additionalProperties": false
+      },
+      "ScenarioInput": {
+        "type": "object",
+        "required": ["title", "plan"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1, "maxLength": 120},
+          "plan": {"$ref": "#/components/schemas/Plan"}
+        },
+        "additionalProperties": false
+      },
+      "Inputs": {
+        "type": "object",
+        "required": ["executable_sha256", "city_snapshot_sha256", "city_view_sha256"],
+        "properties": {
+          "executable_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "city_snapshot_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "city_view_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "additionalProperties": false
+      },
+      "City": {
+        "type": "object",
+        "required": ["rings", "coverage", "baseline", "missing", "projectTsv"],
+        "properties": {
+          "rings": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+            }
+          },
+          "coverage": {
+            "type": "array",
+            "items": {"type": "array", "items": {"type": "string"}, "minItems": 5, "maxItems": 5}
+          },
+          "baseline": {"type": "string"},
+          "missing": {"type": "array", "items": {"type": "string"}},
+          "projectTsv": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      },
+      "Comment": {
+        "type": "object",
+        "required": ["role", "member", "text"],
+        "properties": {
+          "role": {"type": "string", "enum": ["owner", "editor", "viewer"]},
+          "member": {"type": "string"},
+          "text": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "Revision": {
+        "type": "object",
+        "required": ["id", "plan", "review", "comments", "job", "stale"],
+        "properties": {
+          "id": {"type": "integer", "minimum": 1},
+          "plan": {"$ref": "#/components/schemas/Plan"},
+          "review": {"type": "string", "enum": ["draft", "in_review", "approved", "changes_requested"]},
+          "comments": {"type": "array", "items": {"$ref": "#/components/schemas/Comment"}},
+          "job": {"type": ["string", "null"]},
+          "stale": {"enum": [null, "saved_city_snapshot_changed", "evaluator_changed"]}
+        },
+        "additionalProperties": false
+      },
+      "Job": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {"type": "string", "enum": ["completed", "failed", "running", "interrupted"]},
+          "error": {"type": "string"},
+          "evaluation": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "Manifest": {
+        "type": "object",
+        "required": [
+          "schema",
+          "scenario_schema",
+          "report_version",
+          "inputs",
+          "seed",
+          "scenario_sha256",
+          "report_sha256",
+          "basis",
+          "plan_units",
+          "parquet"
+        ],
+        "properties": {
+          "schema": {"const": "carfree-workspace-manifest-v1"},
+          "scenario_schema": {"const": "carfree-workspace-evaluation-v1"},
+          "report_version": {"type": "integer", "minimum": 1},
+          "inputs": {"$ref": "#/components/schemas/Inputs"},
+          "seed": {"type": "integer", "minimum": 0},
+          "scenario_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "basis": {"type": "string"},
+          "plan_units": {"type": "object"},
+          "parquet": {"type": "object"}
+        },
+        "additionalProperties": false
+      },
+      "Evaluation": {
+        "type": "object",
+        "required": ["schema", "manifest", "scenario", "report"],
+        "properties": {
+          "schema": {"const": "carfree-workspace-evaluation-v1"},
+          "manifest": {"$ref": "#/components/schemas/Manifest"},
+          "scenario": {
+            "type": "object",
+            "required": ["plan", "phases"],
+            "properties": {
+              "plan": {"$ref": "#/components/schemas/Plan"},
+              "phases": {"type": "array", "items": {"type": "object"}}
+            },
+            "additionalProperties": false
+          },
+          "report": {
+            "type": "object",
+            "required": ["version", "methodology", "metrics", "phases", "sensitivity", "tradeoffs"],
+            "properties": {
+              "version": {"type": "integer", "minimum": 1},
+              "methodology": {"type": "object"},
+              "metrics": {
+                "type": "array",
+                "items": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 2}
+              },
+              "phases": {"type": "array", "items": {"type": "object"}},
+              "sensitivity": {"type": "object"},
+              "tradeoffs": {"type": "object"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicScenario": {
+        "type": "object",
+        "required": ["schema", "plan", "caveat"],
+        "properties": {
+          "schema": {"const": "carfree-public-scenario-v1"},
+          "plan": {"$ref": "#/components/schemas/Plan"},
+          "caveat": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "Extension": {
+        "type": "object",
+        "required": ["id", "version", "contract", "sample"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 80},
+          "version": {"const": 1},
+          "contract": {"type": "string", "enum": ["optimizer-plan-v1", "dataset-upload-v1"]},
+          "sample": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Invalid path, JSON, or parameters",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "401": {
+        "description": "Workspace bearer required",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "403": {
+        "description": "Insufficient role or forbidden origin",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "404": {
+        "description": "Resource unavailable",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "409": {
+        "description": "Stale inputs, missing evaluation, or storage limit",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "413": {
+        "description": "Request body exceeds 16 KiB",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "431": {
+        "description": "Headers exceed 8 KiB",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      },
+      "500": {
+        "description": "Server or storage error",
+        "content": {
+          "application/json": {
+            "schema": {"oneOf": [{"$ref": "#/components/schemas/Error"}, {"$ref": "#/components/schemas/HttpError"}]}
+          }
+        }
+      }
+    }
+  }
+}

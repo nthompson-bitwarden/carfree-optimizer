@@ -1,5 +1,8 @@
 //! Loopback-only HTTP/1.1 surface for the bundled workbench.
-use crate::model::{self, Completed, MapQuery, Plan};
+use crate::{
+    model::{self, Completed, MapQuery, Plan},
+    workspace::{self, Workspace},
+};
 use std::{
     collections::BTreeMap,
     io::{self, Read, Write},
@@ -16,6 +19,7 @@ const INDEX: &str = include_str!("../../../../../web/index.html");
 const STYLE: &str = include_str!("../../../../../web/workbench.css");
 const SCRIPT: &str = include_str!("../../../../../web/workbench.js");
 const MAX_HEADER_BYTES: usize = 8192;
+const MAX_BODY_BYTES: usize = 16 * 1024;
 const MAX_RETAINED: usize = 64;
 
 #[derive(Clone)]
@@ -144,7 +148,10 @@ impl Jobs {
     }
 }
 
-pub fn serve(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+pub fn serve(
+    port: u16,
+    mut workspace: Option<Workspace>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind(("127.0.0.1", port))?;
     let host = listener.local_addr()?.to_string();
     let origin = format!("http://{host}");
@@ -153,7 +160,7 @@ pub fn serve(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     io::stdout().flush()?;
     for connection in listener.incoming() {
         let mut stream = connection?;
-        if let Err(e) = handle(&mut stream, &host, &origin, &jobs) {
+        if let Err(e) = handle(&mut stream, &host, &origin, &jobs, workspace.as_mut()) {
             if !matches!(
                 e.kind(),
                 io::ErrorKind::TimedOut
@@ -169,34 +176,24 @@ pub fn serve(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn handle(stream: &mut TcpStream, host: &str, origin: &str, jobs: &Jobs) -> io::Result<()> {
+fn handle(
+    stream: &mut TcpStream,
+    host: &str,
+    origin: &str,
+    jobs: &Jobs,
+    workspace: Option<&mut Workspace>,
+) -> io::Result<()> {
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
     let mut bytes = [0; MAX_HEADER_BYTES];
     let mut used = 0;
     let deadline = Instant::now() + Duration::from_secs(2);
-    loop {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            return Err(io::ErrorKind::TimedOut.into());
-        }
-        stream.set_read_timeout(Some(remaining))?;
-        let count = stream.read(&mut bytes[used..])?;
-        if count == 0 {
-            return Err(io::ErrorKind::UnexpectedEof.into());
-        }
-        used += count;
+    let end = loop {
+        used += read_before(stream, &mut bytes[used..], deadline)?;
         if let Some(end) = bytes[..used]
             .windows(4)
             .position(|part| part == b"\r\n\r\n")
         {
-            let response = match std::str::from_utf8(&bytes[..end]) {
-                Ok(head) if end + 4 == used => dispatch(head, host, origin, jobs),
-                _ => Response::error(
-                    "400 Bad Request",
-                    "Invalid HTTP headers or unexpected body.",
-                ),
-            };
-            return response.write(stream);
+            break end;
         }
         if used == MAX_HEADER_BYTES {
             return Response::error(
@@ -205,25 +202,56 @@ fn handle(stream: &mut TcpStream, host: &str, origin: &str, jobs: &Jobs) -> io::
             )
             .write(stream);
         }
+    };
+    let Ok(head) = std::str::from_utf8(&bytes[..end]) else {
+        return Response::error("400 Bad Request", "Invalid HTTP headers.").write(stream);
+    };
+    let request = match Request::parse(head, host, origin) {
+        Ok(request) => request,
+        Err(response) => return response.write(stream),
+    };
+    let initial = &bytes[end + 4..used];
+    if initial.len() > request.length {
+        return Response::error("400 Bad Request", "Unexpected bytes after the request.")
+            .write(stream);
+    }
+    let mut body = vec![0; request.length];
+    body[..initial.len()].copy_from_slice(initial);
+    let mut used = initial.len();
+    while used < body.len() {
+        used += read_before(stream, &mut body[used..], deadline)?;
+    }
+    dispatch(request, &body, jobs, workspace).write(stream)
+}
+
+fn read_before(stream: &mut TcpStream, bytes: &mut [u8], deadline: Instant) -> io::Result<usize> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Err(io::ErrorKind::TimedOut.into());
+    }
+    stream.set_read_timeout(Some(remaining))?;
+    match stream.read(bytes)? {
+        0 => Err(io::ErrorKind::UnexpectedEof.into()),
+        count => Ok(count),
     }
 }
 
-struct Response {
-    status: &'static str,
-    mime: &'static str,
-    body: String,
+pub(crate) struct Response {
+    pub(super) status: &'static str,
+    pub(super) mime: &'static str,
+    pub(super) body: Vec<u8>,
 }
 
 impl Response {
-    fn new(status: &'static str, mime: &'static str, body: impl Into<String>) -> Self {
-        Self {
-            status,
-            mime,
-            body: body.into(),
-        }
+    pub(crate) fn new(status: &'static str, mime: &'static str, body: impl Into<String>) -> Self {
+        Self::bytes(status, mime, body.into().into_bytes())
     }
 
-    fn json(status: &'static str, body: String) -> Self {
+    pub(crate) fn bytes(status: &'static str, mime: &'static str, body: Vec<u8>) -> Self {
+        Self { status, mime, body }
+    }
+
+    pub(crate) fn json(status: &'static str, body: String) -> Self {
         Self::new(status, "application/json", body)
     }
 
@@ -235,71 +263,143 @@ impl Response {
         write!(
             stream,
             concat!(
-                "HTTP/1.1 {}\r\nContent-Type: {}; charset=utf-8\r\nContent-Length: {}\r\n",
+                "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n",
                 "Connection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n",
-                "Referrer-Policy: no-referrer\r\n",
-                "Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\n\r\n{}"
+                "Referrer-Policy: no-referrer\r\n{}",
+                "Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\n\r\n"
             ),
-            self.status, self.mime, self.body.len(), self.body,
-        )
+            self.status,
+            self.mime,
+            self.body.len(),
+            if self.status == "401 Unauthorized" {
+                "WWW-Authenticate: Bearer\r\n"
+            } else {
+                ""
+            },
+        )?;
+        stream.write_all(&self.body)
     }
 }
 
-fn dispatch(head: &str, host: &str, origin: &str, jobs: &Jobs) -> Response {
-    let mut lines = head.split("\r\n");
-    let mut start = lines.next().unwrap_or("").split(' ');
-    let (Some(method), Some(target), Some("HTTP/1.1"), None) =
-        (start.next(), start.next(), start.next(), start.next())
-    else {
-        return Response::error(
-            "400 Bad Request",
-            "Use HTTP/1.1 with an origin-form target.",
-        );
-    };
-    let mut headers = BTreeMap::new();
-    for line in lines {
-        let Some((key, value)) = line.split_once(':') else {
-            return Response::error("400 Bad Request", "Malformed HTTP header.");
+struct Request<'a> {
+    method: &'a str,
+    target: &'a str,
+    authorization: Option<&'a str>,
+    length: usize,
+}
+
+impl<'a> Request<'a> {
+    fn parse(head: &'a str, host: &str, origin: &str) -> Result<Self, Response> {
+        let mut lines = head.split("\r\n");
+        let mut start = lines.next().unwrap_or("").split(' ');
+        let (Some(method), Some(target), Some("HTTP/1.1"), None) =
+            (start.next(), start.next(), start.next(), start.next())
+        else {
+            return Err(Response::error(
+                "400 Bad Request",
+                "Use HTTP/1.1 with an origin-form target.",
+            ));
         };
-        if key.is_empty()
-            || !key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
-            || headers
-                .insert(key.to_ascii_lowercase(), value.trim())
-                .is_some()
-        {
-            return Response::error("400 Bad Request", "Invalid or duplicate HTTP header.");
+        let mut headers = BTreeMap::new();
+        for line in lines {
+            let Some((key, value)) = line.split_once(':') else {
+                return Err(Response::error("400 Bad Request", "Malformed HTTP header."));
+            };
+            if key.is_empty()
+                || !key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+                || headers
+                    .insert(key.to_ascii_lowercase(), value.trim())
+                    .is_some()
+            {
+                return Err(Response::error(
+                    "400 Bad Request",
+                    "Invalid or duplicate HTTP header.",
+                ));
+            }
         }
+        if headers.get("host") != Some(&host) {
+            return Err(Response::error(
+                "403 Forbidden",
+                "Open the exact loopback URL printed by the workbench.",
+            ));
+        }
+        let workspace_route = target.starts_with(workspace::ROOT);
+        let length = headers.get("content-length").copied().unwrap_or("0");
+        if headers.contains_key("transfer-encoding")
+            || length.is_empty()
+            || !length.bytes().all(|byte| byte.is_ascii_digit())
+        {
+            return Err(Response::error(
+                "400 Bad Request",
+                "Invalid request framing.",
+            ));
+        }
+        let length: usize = length
+            .parse()
+            .map_err(|_| Response::error("413 Content Too Large", "Body exceeds 16 KiB."))?;
+        if length > MAX_BODY_BYTES {
+            return Err(Response::error(
+                "413 Content Too Large",
+                "Body exceeds 16 KiB.",
+            ));
+        }
+        if length > 0
+            && !(workspace_route
+                && matches!(method, "POST" | "PUT")
+                && headers.get("content-type") == Some(&"application/json"))
+        {
+            return Err(Response::error(
+                "400 Bad Request",
+                "Only workspace JSON writes accept a body.",
+            ));
+        }
+        if headers.get("origin").is_some_and(|value| *value != origin)
+            || !workspace_route
+                && method == "POST"
+                && (headers.get("origin") != Some(&origin)
+                    || headers.get("x-carfree-workbench") != Some(&"1"))
+        {
+            return Err(Response::error(
+                "403 Forbidden",
+                "This operation requires the workbench origin.",
+            ));
+        }
+        Ok(Self {
+            method,
+            target,
+            authorization: headers.get("authorization").copied(),
+            length,
+        })
     }
-    if headers.get("host") != Some(&host) {
-        return Response::error(
-            "403 Forbidden",
-            "Open the exact loopback URL printed by the workbench.",
-        );
-    }
-    if headers.contains_key("transfer-encoding")
-        || headers
-            .get("content-length")
-            .is_some_and(|value| *value != "0")
-    {
-        return Response::error(
-            "400 Bad Request",
-            "The workbench accepts no HTTP request bodies.",
-        );
-    }
-    if headers.get("origin").is_some_and(|value| *value != origin)
-        || method == "POST"
-            && (headers.get("origin") != Some(&origin)
-                || headers.get("x-carfree-workbench") != Some(&"1"))
-    {
-        return Response::error(
-            "403 Forbidden",
-            "This operation requires the workbench origin.",
-        );
+}
+
+fn dispatch(
+    request: Request<'_>,
+    body: &[u8],
+    jobs: &Jobs,
+    workspace: Option<&mut Workspace>,
+) -> Response {
+    let Request {
+        method,
+        target,
+        authorization,
+        ..
+    } = request;
+    if let Some(path) = target.strip_prefix(workspace::ROOT) {
+        return match workspace {
+            Some(workspace) if !path.contains('?') && !path.contains('#') => workspace.dispatch(method, path, authorization, body),
+            Some(_) => Response::json("400 Bad Request", r#"{"code":"invalid_request","message":"Use a versioned path without a query or fragment."}"#.into()),
+            None => Response::json("404 Not Found", r#"{"code":"not_found","message":"Workspace mode is disabled."}"#.into()),
+        };
     }
     match (method, target) {
-        ("GET", "/") => return Response::new("200 OK", "text/html", INDEX),
-        ("GET", "/workbench.css") => return Response::new("200 OK", "text/css", STYLE),
-        ("GET", "/workbench.js") => return Response::new("200 OK", "text/javascript", SCRIPT),
+        ("GET", "/") => return Response::new("200 OK", "text/html; charset=utf-8", INDEX),
+        ("GET", "/workbench.css") => {
+            return Response::new("200 OK", "text/css; charset=utf-8", STYLE)
+        }
+        ("GET", "/workbench.js") => {
+            return Response::new("200 OK", "text/javascript; charset=utf-8", SCRIPT)
+        }
         _ => {}
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
@@ -442,10 +542,12 @@ mod tests {
         let origin = "http://127.0.0.1:8047";
         let jobs = Jobs::start(|plan| model::run(&plan));
         let request = |header: &str| {
-            dispatch(
-            &format!("POST /api/e17/v1/runs?projects=0&width=2500&capital=200&annual=30 HTTP/1.1\r\nHost: {host}\r\n{header}"),
-            host, origin, &jobs
-        ).status
+            let head = format!("POST /api/e17/v1/runs?projects=0&width=2500&capital=200&annual=30 HTTP/1.1\r\nHost: {host}\r\n{header}");
+            match Request::parse(&head, host, origin) {
+                Ok(request) => dispatch(request, &[], &jobs, None),
+                Err(response) => response,
+            }
+            .status
         };
         for header in [
             "Origin: http://evil.example\r\nX-Carfree-Workbench: 1",

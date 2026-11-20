@@ -32,6 +32,15 @@ INGEST_DECODERS = {
 }
 
 
+API = ROOT / "crates/mobility-api/Cargo.toml"
+API_WORKSPACE = {
+    "getrandom": "=0.4.3",
+    "serde_json": {"version": "=1.0.149", "features": ["raw_value"]},
+    "parquet": {"version": "=58.3.0", "default-features": False},
+    **{name: INGEST_DECODERS[name] for name in ("serde", "sha2", "tempfile")},
+}
+
+
 def dependency_tables(manifest):
     for key in ("dependencies", "dev-dependencies", "build-dependencies"):
         yield manifest.get(key, {})
@@ -39,11 +48,11 @@ def dependency_tables(manifest):
         yield from dependency_tables(target)
 
 
-def check_manifest(item, allow_ingest):
+def check_manifest(item, allow_first_party):
     document = tomllib.loads(item.read_text())
     if "patch" in document or "replace" in document:
         raise ValueError(f"{item}: dependency source overrides are not allowed")
-    approved = INGEST_DECODERS if allow_ingest and item == INGEST else {}
+    approved = {INGEST: INGEST_DECODERS, API: API_WORKSPACE}.get(item, {}) if allow_first_party else {}
     direct = document.get("dependencies", {})
     tables = list(dependency_tables(document))
     tables.append(document.get("workspace", {}).get("dependencies", {}))

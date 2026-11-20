@@ -74,7 +74,9 @@ state and the last 64 runs are ephemeral. One worker executes up to four queued
 fixed plans, in order. Rejected plans return a failed run and expose no partial
 phase result. Closing a browser leaves the worker running until the local
 process exits. Downloaded E02 files use the existing `carfree-study-project-v1`
-schema. The application writes no server-side project files. E16's durable Linux
+schema. The default application writes no server-side project files. Enable
+[E19 saved workspaces](../docs/WORKSPACES.md) to persist and collaborate through
+the versioned workspace API and export standalone artifacts. E16's durable Linux
 worker protocol remains available for seeded batch experiments through its
 [operator interface](../docs/EXPERIMENT-JOBS.md).
 
