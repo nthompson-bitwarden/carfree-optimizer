@@ -81,6 +81,17 @@ pub struct Project {
     pub anchors: [Option<NodeId>; 2],
 }
 
+impl Project {
+    /// Modeled incremental capital and recurring maintenance in the budget's
+    /// major currency units and price year. Excludes opening and transit costs.
+    pub fn incremental_costs(
+        &self,
+        budget: &feasibility::Budget,
+    ) -> Result<(Bounds, Bounds), Error> {
+        crate::portfolio::project_costs(&self.costs, budget)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DoorSample {
     pub destination: String,

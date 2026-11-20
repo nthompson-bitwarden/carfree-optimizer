@@ -7,6 +7,7 @@ edition.workspace = true
 mobility-ingest = { path = "../mobility-ingest" }
 mobility-sim = { path = "../mobility-sim" }
 
-[dev-dependencies]
 mobility-graph = { path = "../mobility-graph" }
 mobility-routing = { path = "../mobility-routing" }
+interventions = { path = "../interventions" }
+optimizer-env = { path = "../optimizer-env" }

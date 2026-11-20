@@ -544,10 +544,12 @@ dependencies = [
 name = "mobility-api"
 version = "0.1.0"
 dependencies = [
+ "interventions",
  "mobility-graph",
  "mobility-ingest",
  "mobility-routing",
  "mobility-sim",
+ "optimizer-env",
 ]
 
 [[package]]

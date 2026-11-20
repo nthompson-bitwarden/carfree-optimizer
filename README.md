@@ -4,7 +4,7 @@ A Rust-first platform to measure, simulate, and optimize the transition of US ci
 
 The primary outcome is **car independence**: more residents able to complete daily trips conveniently, reliably, affordably, safely, and accessibly using walking, conventional bikes, e-bikes, buses, and rail. Vehicle throughput is *not* the optimization objective.
 
-> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Door-node routing with cycling comfort, joint multi-stop search, revision-pinned OD batches and departure-window statistics is available for caller-supplied networks. A bounded reference simulator supports immutable scenario edits, entry-period road feedback, finite transit-capacity bounds, parallel batches and sensitivity distributions (E08). Calibration comparisons, fit-only parameter grids, separate holdout scores and limitation-bearing HTML/TSV reports are available for caller-supplied evidence (E09). Atomic in-memory infrastructure scenarios support conserved lane allocation, explicit crossings and access requirements, exact version undo/redo and separate land-use inputs (E10). Source-to-network adapters, metro-scale routing validation, empirically calibrated simulation and policy evaluation remain future work.
+> **Project status:** Workspace foundations, offline city/metro search, and saved study-area onboarding are implemented. The bundled catalogue covers three pilot areas. Offline public-data ingestion, geospatial quality screening, and replayable input snapshots are available. A validated multimodal network and bounded synthetic reference routing are available. Travel demand, synthetic travelers and conditional tour feasibility are available for caller-supplied inputs. Door-node routing with cycling comfort, joint multi-stop search, revision-pinned OD batches and departure-window statistics is available for caller-supplied networks. A bounded reference simulator supports immutable scenario edits, entry-period road feedback, finite transit-capacity bounds, parallel batches and sensitivity distributions (E08). Calibration comparisons, fit-only parameter grids, separate holdout scores and limitation-bearing HTML/TSV reports are available for caller-supplied evidence (E09). Atomic in-memory infrastructure scenarios support conserved lane allocation, explicit crossings and access requirements, exact version undo/redo and separate land-use inputs (E10). The E17 local spatial workbench renders Census onboarding and exercises scenario editing and comparison on an abstract network. Source-to-network adapters, metro-scale routing validation, empirically calibrated simulation and policy evaluation remain future work.
 
 ## Principles
 
@@ -53,10 +53,10 @@ crates/interventions     atomic infrastructure scenarios, access checks and vers
 crates/mobility-sim      demand, simulation, sensitivity and calibration/holdout reports
 crates/optimizer-env     constrained reference episodes, actions, rewards and observations
 crates/optimizer-bridge  bounded Rust batch transport for training
-crates/mobility-api      offline search/onboarding CLIs and static HTML reports
+crates/mobility-api      offline search and onboarding, reports and loopback workbench
 benchmarks/             synthetic metric fixture, Rust harness, measured history
 training/                Gymnasium adapter, integration checks and batch profiling
-web/                     future Svelte/MapLibre app
+web/                     local spatial workbench assets and browser acceptance
 backlog/                 full prioritized user stories
 docs/                    architecture and decisions
 ```
@@ -76,10 +76,20 @@ for the full quality gates and [benchmark usage](docs/BENCHMARKS.md) for measure
 primitive performance history. The [module contracts](docs/MODULE-CONTRACTS.md)
 identify ownership, APIs, tests, and prohibited changes for all nine domain crates.
 
-No runtime external input downloads, source-to-routing-network adapter, HTTP
-service or calibrated simulator have been wired up. Python training uses an
+Data preparation is offline. The local workbench uses the bundled geography
+catalogue and an abstract network, with calibrated city models still pending. Python training uses an
 explicit bounded process binding, not an in-process extension. Synthetic
 reference evaluation and benchmarks provide no planning predictions.
+
+## Spatial workbench
+
+```sh
+cargo run --locked --offline -p mobility-api --bin spatial-workbench
+```
+
+Open the printed loopback URL. Inspect the Census boundary and dataset gaps,
+then use the synthetic network to screen a corridor, run a scenario and compare
+accessibility over construction phases. See the [demo and tests](web/README.md).
 
 ## Constrained reference optimization environment
 

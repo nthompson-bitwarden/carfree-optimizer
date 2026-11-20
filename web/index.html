@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spatial workbench | Car Independence Optimizer</title>
+  <link rel="stylesheet" href="/workbench.css">
+  <script src="/workbench.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#workbench">Skip to workbench</a>
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>Car Independence Optimizer</span>
+    </div>
+    <nav aria-label="Workbench">
+      <a href="#study">Study area</a>
+      <a href="#scenario">Scenario</a>
+      <a href="#results">Comparison</a>
+    </nav>
+  </header>
+  <main id="workbench">
+    <div class="intro">
+      <h1>Spatial workbench</h1>
+      <p>Choose a study area, design a corridor, and compare how it changes car-free journeys.</p>
+    </div>
+    <section id="study" class="panel" aria-labelledby="study-heading">
+      <div class="section-head">
+        <h2 id="study-heading">Study area</h2>
+        <span class="scope">Census 2024 pilot</span>
+      </div>
+      <div class="study-grid">
+        <div class="study-controls">
+          <form id="study-form">
+            <label>City or metro <select name="area" id="area" required></select></label>
+            <label>Snapshot date <input name="date" id="date" type="date" value="2026-01-05" min="0001-01-01" max="9999-12-31" required></label>
+            <button class="primary" type="submit">Initialize boundary</button>
+          </form>
+          <p id="study-status" role="status"></p>
+          <button id="save-study" type="button" hidden>Download project snapshot</button>
+          <dl id="coverage" class="coverage"></dl>
+        </div>
+        <div>
+          <svg id="boundary" class="map boundary" viewBox="0 0 520 310" role="img" aria-label="Selected Census study boundary"></svg>
+          <p class="map-caption">US Census Bureau TIGER/Line, 2024 · longitude/latitude preview</p>
+        </div>
+      </div>
+    </section>
+    <section id="scenario" class="panel" aria-labelledby="scenario-heading">
+      <div class="section-head">
+        <h2 id="scenario-heading">Corridor scenario</h2>
+        <span class="scope">Synthetic network</span>
+      </div>
+      <p class="notice">This abstract network is independent of the selected Census area. Its journeys, costs and outcomes use arbitrary modeled assumptions. Results are for demonstration only.</p>
+      <p id="provenance" class="caption"></p>
+      <div class="scenario-grid">
+        <div>
+          <fieldset id="layers">
+            <legend>Network layers</legend>
+            <div class="layers"></div>
+          </fieldset>
+          <svg id="scenario-map" class="map network" viewBox="0 0 520 310" role="img" aria-label="Abstract network and proposed corridor links"></svg>
+          <p class="caption">Solid lines are links. Dotted mode-colored lines mark unknown access. Dashed dark lines mark proposals. Use the map or the corridor controls to select links.</p>
+          <ul id="layer-legend" class="legend"></ul>
+          <p class="caption">Unknown means unassessed. Absent means the fixture contains no links for that mode.</p>
+        </div>
+        <div>
+          <form id="plan-form">
+            <fieldset>
+              <legend>Candidate walkway links in phase order</legend>
+              <p class="caption">Propose up to two links that share a node. The fixture allocates modeled corridor space to walking without removing an existing road.</p>
+              <div id="projects" class="options"></div>
+            </fieldset>
+            <div class="input-grid">
+              <label>Walkway width (mm) <input name="width" type="number" min="1500" max="8000" step="1" value="1900" required></label>
+              <label>Capital budget (2026 USD) <input name="capital" type="number" min="0" max="10000" step="1" value="200" required></label>
+              <label>Annual budget (2026 USD/year) <input name="annual" type="number" min="0" max="10000" step="1" value="30" required></label>
+            </div>
+            <div class="actions">
+              <button type="submit">Preview and screen</button>
+              <button id="run" class="primary" type="button" disabled>Run scenario</button>
+            </div>
+          </form>
+          <p id="plan-status" role="status"></p>
+          <div id="costs"></div>
+          <div class="job"><strong>Scenario run</strong><p id="run-status" role="status">No run submitted.</p><p id="submitted-plan" class="caption"></p><button id="resume-run" type="button" hidden>Check run status</button></div>
+        </div>
+      </div>
+    </section>
+    <section id="results" class="panel" aria-labelledby="results-heading">
+      <div class="section-head">
+        <h2 id="results-heading">Before and after</h2>
+        <span class="scope">Modeled outcomes</span>
+      </div>
+      <p id="results-status" role="status">Run a screened scenario to see comparison maps.</p>
+      <div id="results-content" hidden>
+        <form id="comparison-form">
+          <div class="input-grid comparison-controls">
+            <label>Origin <select name="origin" id="origin"></select></label>
+            <label>Mode set <select name="modes"><option value="walk">Walking</option><option value="walk-bus">Walking and bus</option></select></label>
+            <label>Mobility profile <select name="profile"><option value="step-free">Step-free / mobility aid</option><option value="standard">Standard walking</option></select></label>
+            <label>Map metric <select name="metric"><option value="time">Median time band</option><option value="coverage">Departure reachability</option></select></label>
+            <label>First departure (s) <input name="start" type="number" min="0" max="120" value="0" required></label>
+            <label>Last departure (s) <input name="end" type="number" min="0" max="120" value="10" required></label>
+            <label>Travel-time limit (s) <input name="seconds" type="number" min="1" max="180" value="30" required></label>
+          </div>
+          <p class="caption">Sampled every second on the fixture clock. First departure must precede or equal the last, and last departure plus the limit must fit inside the 180 s service window.</p>
+          <div class="actions">
+            <button class="primary" type="submit">Update comparison</button>
+            <label class="inline">Both map extents <select id="extent"><option value="all">Entire network</option><option value="origin">Zoom around origin</option></select></label>
+          </div>
+        </form>
+        <fieldset class="timeline">
+          <legend>Construction phases</legend>
+          <div class="actions">
+            <button id="phase-back" type="button">Previous</button>
+            <label class="inline">Phase <select id="phase"></select></label>
+            <button id="phase-next" type="button">Next</button>
+            <button id="phase-play" type="button">Play</button>
+          </div>
+        </fieldset>
+        <div id="results-output" hidden>
+          <p id="result-plan" class="caption"></p>
+          <p class="caption">Dashed green paths are links added since the baseline.</p>
+          <p id="comparison-caption" class="caption"></p>
+          <ul id="result-legend" class="legend"></ul>
+          <div class="comparison-grid">
+            <article><h3>Baseline</h3><svg id="before-map" class="map network" role="img" aria-label="Baseline sampled accessibility map"></svg><ul id="before-data" class="destinations"></ul></article>
+            <article><h3 id="after-title">Scenario</h3><svg id="after-map" class="map network" role="img" aria-label="Scenario sampled accessibility map"></svg><ul id="after-data" class="destinations"></ul></article>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <caption>Phase outcomes for the fixture’s fixed demand</caption>
+              <thead><tr><th scope="col">Metric</th><th scope="col">Baseline</th><th scope="col" id="phase-column">Scenario</th></tr></thead>
+              <tbody id="phase-metrics"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
