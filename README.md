@@ -98,6 +98,16 @@ Reference-network car dependence is explicitly separate from E08 assignments;
 these inputs are not calibrated and do not authorize policy recommendations.
 See the [schema, Python setup, tests and profiling guide](docs/RL-ENVIRONMENT.md).
 
+## Durable experiment jobs
+
+E16 adds a [durable synthetic experiment CLI](docs/EXPERIMENT-JOBS.md): persisted
+hashed specs, seed sweeps, progress/logs, cancellation and seed-boundary resume,
+authenticated remote-worker leases, fenced results, and usage/rate estimates.
+The Python standard-library control plane leaves simulation in Rust. Hard CPU and
+virtual-memory quotas require 64-bit Linux workers; other platforms fail closed.
+This is trusted research tooling, not a public multi-tenant service or evidence
+of calibrated metropolitan simulation.
+
 ## Car-independence, accessibility and equity scores
 
 [E13 scoring](docs/ACCESSIBILITY-SCORING.md) provides explicit destination/window

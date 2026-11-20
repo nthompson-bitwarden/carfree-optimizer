@@ -25,3 +25,4 @@ jobs:
       - run: cargo test --locked --offline -p optimizer-bridge --example e14_experiments
       - run: python3 -m compileall -q training
       - run: PYTHONPATH=training python3 -m unittest discover -s training/tests -v
+      - run: PYTHONPATH=training python3 training/tests/e16_linux_acceptance.py

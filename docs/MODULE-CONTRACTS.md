@@ -32,7 +32,11 @@ complexity, and limitations are documented in [BENCHMARKS.md](BENCHMARKS.md).
 Python scripts orchestrate validation, offline source-fixture preparation and
 training-only Gymnasium transport. The [E15 benchmark](OPTIMIZATION.md) adds
 synthetic topology/demand selection and training-only optimization search in
-Python over the unchanged E14 wire. Geography search, environment transitions,
+Python over the unchanged E14 wire. [E16 experiment jobs](EXPERIMENT-JOBS.md) add
+training-only durable orchestration and a narrow `e16_evaluate` Rust example;
+Linux resource-limit C calls are OS quota setup, not Python bindings or a new
+domain API. Its versioned job protocol, checkpoint boundaries, Linux acceptance
+and trusted-operator restrictions are documented separately. Geography search, environment transitions,
 scoring and timed metric computation remain in Rust. The E02-S01 source
 preparation helper and versioned fixtures live in `scripts/prepare-geography.py`
 and `fixtures/geography/**`; they do not implement a live download service.
