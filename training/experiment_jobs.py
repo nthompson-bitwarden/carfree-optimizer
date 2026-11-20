@@ -15,6 +15,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import secrets
 import signal
 import shutil
@@ -36,6 +37,46 @@ MAX_BODY = 262144
 
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def safe_log(log, bearer, lease):
+    # Long hexadecimal capabilities stay redacted after credential rotation.
+    log = re.sub(r"[0-9a-f]{64}", "*", log)
+    for capability in (bearer, lease):
+        if isinstance(capability, str) and capability:
+            log = log.replace(capability, "*")
+    return log
+
+
+def log_commitment(log):
+    return hashlib.sha256(log.encode()).hexdigest()
+
+
+def completion_identity(payload):
+    record = json.loads(payload)
+    log = record.pop("log")
+    if "log_sha256" not in record:
+        record["log_sha256"] = log_commitment(log)
+    return encoded(record)
+
+
+def completion_view(payload):
+    record = json.loads(payload)
+    record.pop("log_sha256", None)
+    return record
+
+
+def attempt_trace(token):
+    # Domain separation keeps this correlation ID distinct from the capability.
+    return hashlib.sha256(("carfree-attempt-event-v1/" + token).encode()).hexdigest()
+
+
+def emit_event(job, status, started, **fields):
+    event = dict(schema="carfree-job-event-v1", component="training", job=job,
+                 status=status, elapsed_ms=round((time.monotonic() - started) * 1000),
+                 **fields)
+    with contextlib.suppress(OSError):
+        print(encoded(event), file=sys.stderr)
 
 
 def digest(path):
@@ -233,20 +274,25 @@ class Store:
                 or not isinstance(log, str) or len(log.encode()) > LOG_BYTES):
             raise ValueError("invalid/beyond-cap progress, score or log")
 
-    def finish(self, token, score, scenarios, failures, log, wall_seconds, cpu_seconds, peak_rss_bytes):
+    def finish(self, token, score, scenarios, failures, log, wall_seconds, cpu_seconds, peak_rss_bytes,
+               *, operator_bearer=None):
+        started = time.monotonic()
         self._progress_fields(scenarios, failures, score, log)
         if (not number(wall_seconds) or not number(cpu_seconds) or wall_seconds > 86400
                 or cpu_seconds > 86400 or not integer(peak_rss_bytes, 0, 2**50)):
             raise ValueError("invalid attempt usage")
-        payload = encoded(dict(score=score, scenarios=scenarios, failures=failures, log=log,
-                               wall_seconds=wall_seconds, cpu_seconds=cpu_seconds, peak_rss_bytes=peak_rss_bytes))
+        record = dict(score=score, scenarios=scenarios, failures=failures, log=log,
+                      wall_seconds=wall_seconds, cpu_seconds=cpu_seconds, peak_rss_bytes=peak_rss_bytes)
+        if operator_bearer is not None:
+            record.update(log=safe_log(log, operator_bearer, token), log_sha256=log_commitment(log))
+        payload = encoded(record)
         with self.connection() as db:
             self._settle(db)
             a = db.execute("SELECT * FROM attempts WHERE token=?", (token,)).fetchone()
             if a is None:
                 raise ValueError("unknown attempt token")
             if a["result"] is not None:
-                if payload != a["result"]:
+                if completion_identity(payload) != completion_identity(a["result"]):
                     raise ValueError("conflicting completion replay")
                 return a["state"] == "accepted"
             job = self._job(db, a["job"])
@@ -259,7 +305,11 @@ class Store:
                 db.execute("UPDATE items SET state=?,result=?,token=NULL WHERE token=?",
                            ("completed" if accepted else "pending", payload if accepted else None, token))
             self._settle(db)
-            return accepted
+        if operator_bearer is not None:
+            emit_event(a["job"], "attempt_accepted" if accepted else "attempt_reaped", started,
+                       seed=a["seed"], attempt=attempt_trace(token), scenarios=scenarios,
+                       failures=failures, action=None if accepted else "inspect job status and attempt usage")
+        return accepted
 
     def cancel(self, job):
         with self.connection() as db:
@@ -292,7 +342,9 @@ class Store:
             for a in attempts:
                 a.pop("token")
                 a.pop("request_id")
-            results = [dict(seed=i["seed"], reference=f"sqlite:{job}/{i['seed']}", **json.loads(i["result"]))
+                if a["result"] is not None:
+                    a["result"] = encoded(completion_view(a["result"]))
+            results = [dict(seed=i["seed"], reference=f"sqlite:{job}/{i['seed']}", **completion_view(i["result"]))
                        for i in items if i["state"] == "completed"]
             scores = [r["score"] for r in results]
             usage = [json.loads(a["result"]) for a in attempts if a["result"] is not None]
@@ -333,33 +385,83 @@ def serve(store, secret, port=8765):
     if not secret:
         raise ValueError("nonempty bearer token required")
 
+    expected_authorization = f"Bearer {secret}".encode()
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass  # never log bearer capabilities or job details
 
         def do_POST(self):
+            started = time.monotonic()
             self.connection.settimeout(5)
-            if not hmac.compare_digest(self.headers.get("Authorization", ""), f"Bearer {secret}"):
+            if not hmac.compare_digest(self.headers.get("Authorization", "").encode(), expected_authorization):
                 self.send_error(401)
                 return
+            operation = self.path[1:]
             try:
-                length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= MAX_BODY or self.path[1:] not in METHODS:
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                except ValueError:
+                    raise ValueError("invalid Content-Length") from None
+                if not 0 < length <= MAX_BODY or operation not in METHODS:
                     raise ValueError("unknown operation or excessive request size")
                 data = self.rfile.read(length)
                 if len(data) != length:
                     raise ValueError("incomplete body")
-                args = json.loads(data)
-                result = getattr(store, self.path[1:])(**args)
+                try:
+                    args = json.loads(data)
+                except (ValueError, RecursionError):
+                    raise ValueError("invalid JSON request") from None
+                if operation == "progress" and isinstance(args, dict) and isinstance(args.get("log"), str):
+                    Store._progress_fields(args.get("scenarios"), args.get("failures"),
+                                           args.get("score"), args["log"])
+                    args["log"] = safe_log(args["log"], secret, args.get("token"))
+                if operation == "finish":
+                    result = store.finish(operator_bearer=secret, **args)
+                else:
+                    result = getattr(store, operation)(**args)
+                if operation == "status":
+                    for attempt in result["attempts"]:
+                        attempt["log"] = safe_log(attempt["log"], secret, None)
+                        if attempt["result"] is not None:
+                            completion = json.loads(attempt["result"])
+                            completion["log"] = safe_log(completion["log"], secret, None)
+                            attempt["result"] = encoded(completion)
+                    for completion in result["results"]:
+                        completion["log"] = safe_log(completion["log"], secret, None)
                 body = encoded(dict(ok=True, result=result)).encode()
                 self.send_response(200)
-            except (ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
+                self.record_event(operation, result, started)
+            except ValueError as e:
                 body = encoded(dict(ok=False, error=str(e))).encode()
+                self.send_response(400)
+            except (TypeError, KeyError):
+                body = encoded(dict(ok=False, error="invalid operation arguments")).encode()
                 self.send_response(400)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        @staticmethod
+        def record_event(operation, result, started):
+            if operation == "submit":
+                job, status = result, "submitted"
+            elif operation == "claim" and result:
+                job, status = result["job"], result["attempt_state"]
+            elif operation == "status":
+                job, status = result["job"], result["state"]
+            else:
+                return
+            # Job identifier and status come from the store. Select only safe fields.
+            fields = {}
+            if operation == "claim":
+                fields.update(seed=result["seed"], attempt=attempt_trace(result["token"]))
+            if operation == "status":
+                fields.update(finalized=result["finalized"], attempt_failures=result["attempt_failures"])
+                if status == "failed":
+                    fields["action"] = "inspect authenticated job status and retry eligible seeds"
+            emit_event(job, status, started, **fields)
 
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
 

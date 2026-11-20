@@ -20,11 +20,11 @@ INGEST_DECODERS = {
     "csv": "=1.4.0",
     "gtfs-realtime": "=0.2.0",
     "parquet": {
-        "version": "=58.3.0", "default-features": False,
-        "features": ["snap", "zstd", "flate2-rust_backened"],
+        "version": "=59.3.3", "default-features": False,
+        "features": ["snap", "zstd", "flate2-rust_backend"],
     },
     "prost": "=0.14.3",
-    "quick-xml": "=0.39.4",
+    "quick-xml": "=0.41.0",
     "serde": {"version": "=1.0.228", "features": ["derive"]},
     "serde_json": "=1.0.149",
     "sha2": "=0.11.1",
@@ -36,7 +36,7 @@ API = ROOT / "crates/mobility-api/Cargo.toml"
 API_WORKSPACE = {
     "getrandom": "=0.4.3",
     "serde_json": {"version": "=1.0.149", "features": ["raw_value"]},
-    "parquet": {"version": "=58.3.0", "default-features": False},
+    "parquet": {"version": "=59.3.3", "default-features": False},
     **{name: INGEST_DECODERS[name] for name in ("serde", "sha2", "tempfile")},
 }
 

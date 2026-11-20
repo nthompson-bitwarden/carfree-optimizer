@@ -9,14 +9,16 @@ use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    let independent_reference = args == ["--independent-reference"];
     let (tours, workers, repetitions) = match args.as_slice() {
         [] => (1, 1, 1),
+        [_] if independent_reference => (1, 1, 1),
         [flag, tours, workers, repetitions] if flag == "--benchmark" => (
             tours.parse::<usize>()?,
             workers.parse::<usize>()?,
             repetitions.parse::<usize>()?,
         ),
-        _ => return Err("usage: e08_simulation [--benchmark TOURS WORKERS REPETITIONS]".into()),
+        _ => return Err("usage: e08_simulation [--benchmark TOURS WORKERS REPETITIONS | --independent-reference]".into()),
     };
     if tours == 0 || tours > 100_000 || repetitions == 0 || repetitions > 100 {
         return Err("invalid benchmark bounds".into());
@@ -75,6 +77,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             preference_seconds: 0.0,
         },
     };
+    if independent_reference {
+        compare_free_flow(&network, &mut demand, scenario)?;
+        return Ok(());
+    }
     let scenarios = vec![scenario; 8];
     let oracle = batch(&Iterative, &network, &demand, &scenarios, 1)?.reports;
     let mut latencies = Vec::new();
@@ -103,5 +109,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         r.engine, r.status, r.iterations, r.volume_residual, r.person_seconds, r.unserved_essential_weight, r.essential_without_car_free_candidate);
     println!("batch_elapsed_seconds={elapsed:.6} scenarios_per_second={:.3} single_scenario_p50_ms={:.3} single_scenario_p95_ms={:.3}",
         (8 * repetitions) as f64 / elapsed, latencies[(latencies.len() * 50).div_ceil(100) - 1] * 1000.0, latencies[(latencies.len() * 95).div_ceil(100) - 1] * 1000.0);
+    Ok(())
+}
+
+// Match a single car on each 100 m leg in the E20 SUMO free-flow fixture.
+fn compare_free_flow(
+    network: &mobility_graph::network::Network,
+    demand: &mut mobility_sim::demand::Demand,
+    mut scenario: Scenario,
+) -> Result<(), Box<dyn std::error::Error>> {
+    demand.groups[0]
+        .modes
+        .retain(|mode, _| *mode == TravelMode::Car);
+    scenario.settings.alpha = 0.0;
+    for speed_mps in [10, 5] {
+        scenario.edits = [7, 8]
+            .map(|edge| Edit::StreetSeconds {
+                edge: EdgeId(edge),
+                seconds: 100 / speed_mps,
+            })
+            .to_vec();
+        let report = Iterative.evaluate(network, demand, &scenario)?;
+        let weight = report.mode_trip_weights[&TravelMode::Car];
+        if weight != 9.0 || report.unserved_trip_weight != 0.0 || report.status != Status::Converged
+        {
+            return Err("free-flow comparator expected both car trip legs to complete".into());
+        }
+        println!("{speed_mps},{}", report.person_seconds / (2.0 * weight));
+    }
     Ok(())
 }

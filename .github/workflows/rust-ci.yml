@@ -18,6 +18,13 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
+      - run: cargo build --locked --offline -p mobility-api --bin spatial-workbench
+      - run: python3 tests/acceptance/e20_workspace.py target/debug/spatial-workbench
+      - run: cargo build --locked --offline -p mobility-sim --example e08_simulation
+      - run: |
+          python3 -m venv /tmp/carfree-sumo
+          /tmp/carfree-sumo/bin/python -m pip install eclipse-sumo==1.28.0 sumo-data==1.28.0
+          PATH="/tmp/carfree-sumo/bin:$PATH" python3 tests/acceptance/e20_sumo.py target/debug/examples/e08_simulation
       - run: python3 scripts/check-dependencies.py
       - run: python3 -m unittest discover -s tests/foundations -v
       - run: python3 -m pip install -r training/requirements.txt

@@ -598,3 +598,20 @@ fn e08_s02_effective_revision_includes_period_utc_boundaries() {
     );
     assert_ne!(a.effective_network_revision, b.effective_network_revision);
 }
+
+#[test]
+fn e20_s01_given_varied_demand_and_transit_capacity_then_trip_weight_is_conserved() {
+    let (network, mut demand, mut scenario) = inputs();
+    transit_only(&mut demand);
+    for multiplier in [0.5, 1.0, 2.0] {
+        scenario.settings.demand_multiplier = multiplier;
+        for capacity in [1.0, 4.5, 10.0] {
+            scenario.transit[0].passengers = capacity;
+            let report = Iterative.evaluate(&network, &demand, &scenario).unwrap();
+            let accounted =
+                report.mode_trip_weights.values().sum::<f64>() + report.unserved_trip_weight;
+            assert!((accounted - 4.5 * multiplier).abs() < 1e-9);
+            assert!(report.transit[0].served_passengers <= capacity);
+        }
+    }
+}
