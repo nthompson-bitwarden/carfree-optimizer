@@ -1,5 +1,5 @@
 //! Loopback-only HTTP/1.1 surface for the bundled workbench.
-use crate::model::{self, MapQuery, Phase, Plan};
+use crate::model::{self, Completed, MapQuery, Plan};
 use std::{
     collections::BTreeMap,
     io::{self, Read, Write},
@@ -23,7 +23,7 @@ enum State {
     Queued,
     Running,
     Failed(String),
-    Completed(Arc<Vec<Phase>>),
+    Completed(Arc<Completed>),
 }
 
 impl State {
@@ -34,9 +34,10 @@ impl State {
             Self::Failed(error) => {
                 format!(r#"{{"status":"failed","error":{}}}"#, model::json(error))
             }
-            Self::Completed(phases) => format!(
-                r#"{{"status":"completed","phases":{}}}"#,
-                model::array(phases.iter().map(Phase::view))
+            Self::Completed(result) => format!(
+                r#"{{"status":"completed","phases":{},"report":{}}}"#,
+                model::array(result.phases.iter().map(model::Phase::view)),
+                result.report,
             ),
         }
     }
@@ -70,7 +71,7 @@ struct Jobs {
 }
 
 impl Jobs {
-    fn start(evaluate: impl Fn(Plan) -> model::Result<Vec<Phase>> + Send + 'static) -> Self {
+    fn start(evaluate: impl Fn(Plan) -> model::Result<Completed> + Send + 'static) -> Self {
         let ledger = Arc::new(Mutex::new(Ledger::default()));
         let worker_ledger = Arc::clone(&ledger);
         let (queue, entries) = mpsc::sync_channel::<(u64, Plan)>(4);
@@ -384,7 +385,7 @@ fn handle_api(
             let State::Completed(phases) = jobs.get(v["id"])?.state else {
                 return Err("Wait for the run to complete before comparing maps.".into());
             };
-            model::compare(&phases, phase, &query)?
+            model::compare(&phases.phases, phase, &query)?
         }
         _ => {
             return Ok((

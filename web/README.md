@@ -134,3 +134,96 @@ used Parking and Clinic approaches at 1,900 mm with 200 USD capital and
 access, departures 0–120 s and a 60 s limit. Timings include HTTP and JSON, with
 browser rendering and memory outside the measurement. City-scale maps and
 routing workloads require separate benchmarks.
+
+## Interpretation and reports
+
+After a run completes, use **Origin** and **Update comparison** to inspect
+the matched routing maps and trip-group table together. Only the abstract
+origin at node 1 has modeled trips. Its two primary cohorts are adult and
+mobility-aid travelers. The table describes weighted trip legs by home zone.
+Map filters for travel mode, mobility profile and time apply to the E07
+departure query. They do not change the fixed demand cohorts used in E06 or E08.
+Selecting another origin explicitly shows the absence of modeled trip groups.
+
+Use **Report metric** to change the phase chart and sensitivity table together.
+The chart and its numeric table show phase-minus-prior and phase-minus-baseline
+differences. Percent shares use percentage-point differences. The comparison
+identifies the independent E08 assignment and E06 reference-network denominators.
+Reference essential trips without a car-free option include car-required trips
+and those without any feasible mode. The reference views measure whole-tour
+feasibility before assignment and capacity effects. Added feasible options
+can appear even when the assigned mode does not change. Cost bands describe
+supplied fixture estimates. The displayed fixed-door ratio follows E14 and
+uses a fixed baseline car comparator.
+
+Sensitivity evaluates the submitted order from a matched reference opening
+under each one-at-a-time condition, at seed 42. It tests E15 demand mix 2
+(adult and mobility-aid weights of 6 and 4, versus 4 and 2 nominally),
+a hypothetical storm that removes the walk-only tour mode at departure
+(transit access legs remain permitted), and a doubled generalized penalty for
+waiting. The waiting penalty changes modeled choices through cost rather than
+altering clock times. Each range takes extrema of final-minus-opening values
+over the available conditions and nominal run. Failed evaluations are
+listed with reasons and excluded from ranges. These are scenario sensitivity
+ranges, with no statistical confidence interpretation.
+
+The frontier evaluates the opening, all one-project choices and both orders
+of every distinct pair of projects. It uses the submitted width and shared
+budgets, the E17 connected-corridor rule, and E12/E14 feasibility gates.
+It maximizes cumulative E14 reward and minimizes upper-bound capital, the
+two objectives used in the E15 benchmark archive. Exact ties survive.
+**Priority** changes the display order of the same frontier. Open **frontier
+plans** below the table to see counts for the baseline, screened plans and excluded orders, with the
+exclusion reasons. The report retains every screened sequence, including
+dominated results. The frontier applies only to the workbench's finite fixture and
+declared objectives.
+
+Select **Download full report (JSON)** to save
+`carfree-run-<id>-report-v1.json`. It includes the immutable submitted plan,
+model and source revisions, ordered projects, scenario snapshots, seed,
+calibration quality, uncertainty and causal limits. The synthetic fixture has
+no empirical calibration and supports no planning recommendations.
+
+### Report schema v1
+
+A completed `GET /api/e17/v1/run?id=<id>` adds `state.report`.
+Existing E17 plan and phase fields are retained. The comparison route adds
+`beforeTrace` and `afterTrace` with the same trace schema.
+
+| Field | Meaning |
+| --- | --- |
+| `version` | Report schema version, currently 1. |
+| `methodology` | Human-readable calibration, uncertainty, limitations and assumptions. |
+| `metrics` | Ordered `[label, unit]` pairs bound to numeric vectors. |
+| `phases` | Baseline first, then ordered project steps. Each row includes `trace`, metric `values`, signed `incremental` and `cumulative` vectors, grouped demand summaries, assignment status, essential denominators in weighted trips and raw E14 step reward. Missing values and changes are JSON null. |
+| `trace` | Scenario ID and schema version, graph/effective/demand/service/destination/catalog revisions, ordered applied project IDs, numeric seed, model versions and dated geography/source/license. The containing plan provides width and limits. The containing sensitivity row provides any changed assumptions. |
+| `groups` | Origin node, home zone, primary group, weighted assignment totals/unserved/served-by-mode, and weighted reference total, car-required, no-mode and unknown counts. No individual tour IDs. |
+| `sensitivity` | Ordered test objects with assumption settings, phase rows and matched final changes or explicit error. `ranges` contains one `[min, max, count]` or null per metric. |
+| `tradeoffs` | Baseline and screened alternatives with zero-based project indices, final upper-bound capital in 2026 USD, cumulative reward, frontier flag and phase rows. Rejected sequences include ordered project IDs and explicit errors. |
+
+The download adds the run ID and plan to the report document. Scope and
+retention match E17. The server produces the report once in the bounded worker
+and never rewrites it in response to metric or priority controls.
+
+### E18 verification
+
+Rust tests cover missing changes, deterministic projection and exact Pareto
+dominance. The browser acceptance in `web/tests/e17-browser.cjs` exercises
+E18-S01–S07 as well as E17, including shared map and cohort filtering,
+percentage-point deltas, real sensitivity runs and byte-equivalent report
+data across priority changes. It saves a report screenshot alongside the
+desktop and mobile screenshots.
+
+The reference simulation paths are unchanged. Reporting adds a bounded
+enumeration of at most nine intervention orders with at most two steps each
+and three matched perturbations. Projection is linear in reported phase
+and cohort rows, with a quadratic dominance scan over at most ten plans.
+Preview retains the nominal single-plan evaluation.
+
+With Rust 1.97.1 on macOS 26.7.3 / Apple M5 Pro, a debug build completed
+and retrieved the two-project report in 76.65 ms median and 77.64 ms p95.
+The test sent five warmups and 30 sequential submissions over loopback
+with 1 ms polling. It used Parking and Clinic approaches at 1,900 mm,
+200 USD capital, and 30 USD/year limits. The completed response was
+53,947 bytes. These timings include queueing, evaluation, HTTP and JSON
+reading. Browser rendering and memory were outside the measurement.

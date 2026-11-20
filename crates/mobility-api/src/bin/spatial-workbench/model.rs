@@ -1,5 +1,8 @@
 //! E17's versioned local adapter. Engines own all routing and scenario checks.
-use interventions::feasibility::{Bounds, Budget};
+use interventions::{
+    feasibility::{Bounds, Budget},
+    scenario::Snapshot,
+};
 use mobility_graph::{
     network::{LinkKind, Network},
     Mode, NodeId,
@@ -18,6 +21,10 @@ use optimizer_env::{
     synthetic,
 };
 use std::fmt::{Display, Write};
+
+#[path = "report.rs"]
+mod report;
+pub use report::Completed;
 
 pub type Result<T> = std::result::Result<T, String>;
 
@@ -190,8 +197,7 @@ impl Plan {
         )
     }
 
-    fn config(&self) -> Result<Config> {
-        let mut config = fixture()?;
+    fn configure(&self, mut config: Config) -> Result<Config> {
         let mut projects = config.catalog.projects().to_vec();
         if let [a, b] = self.projects.as_slice() {
             if !projects[*a]
@@ -246,7 +252,7 @@ fn estimates(config: &Config, projects: &[usize], budget: &Budget) -> Result<Str
 }
 
 pub fn preview(plan: &Plan) -> Result<String> {
-    let config = plan.config()?;
+    let config = plan.configure(fixture()?)?;
     let costs = estimates(&config, &plan.projects, &config.opening.budget)?;
     let (warning, total) = match evaluate(config, plan) {
         Ok(phases) => (String::from("null"), phases.last().unwrap().budget.clone()),
@@ -263,6 +269,7 @@ pub struct Phase {
     name: String,
     budget: String,
     metrics: String,
+    report: report::PhaseEvidence,
 }
 
 impl Phase {
@@ -278,13 +285,22 @@ impl Phase {
     }
 }
 
-fn record(network: &Network, name: &str, transition: &IndexedTransition) -> Phase {
+fn record(
+    snapshot: &Snapshot,
+    projects: &[String],
+    transition: &IndexedTransition,
+    catalog: &str,
+) -> Phase {
     let assignment = &transition.evidence.trips.assignment;
     let essential = &assignment.essential;
     let reference = &transition.reward.after;
     Phase {
-        network: network.clone(),
-        name: name.into(),
+        network: snapshot.network().clone(),
+        name: projects
+            .last()
+            .cloned()
+            .unwrap_or_else(|| "Baseline".into()),
+        report: report::PhaseEvidence::new(snapshot, projects, transition, catalog),
         budget: format!(
             "[{},{}]",
             money(transition.budget.capital),
@@ -307,10 +323,13 @@ fn record(network: &Network, name: &str, transition: &IndexedTransition) -> Phas
 fn evaluate(config: Config, plan: &Plan) -> Result<Vec<Phase>> {
     let mut env = Environment::new(config).map_err(|e| e.to_string())?;
     let opening = env.reset(42).map_err(|e| e.to_string())?.clone();
+    let mut projects = Vec::new();
+    let catalog = env.catalog().revision().to_owned();
     let mut phases = vec![record(
-        env.snapshot().unwrap().network(),
-        "Baseline",
+        env.snapshot().unwrap(),
+        &projects,
         &opening,
+        &catalog,
     )];
     let mut state = opening.state;
     for &index in &plan.projects {
@@ -320,13 +339,14 @@ fn evaluate(config: Config, plan: &Plan) -> Result<Vec<Phase>> {
             .map_err(|e| format!("{name}: {e}"))?
             .clone();
         state = next.state;
-        phases.push(record(env.snapshot().unwrap().network(), &name, &next));
+        projects.push(name);
+        phases.push(record(env.snapshot().unwrap(), &projects, &next, &catalog));
     }
     Ok(phases)
 }
 
-pub fn run(plan: &Plan) -> Result<Vec<Phase>> {
-    evaluate(plan.config()?, plan)
+pub fn run(plan: &Plan) -> Result<Completed> {
+    report::build(plan)
 }
 
 pub struct MapQuery {
@@ -424,9 +444,11 @@ impl MapQuery {
 pub fn compare(phases: &[Phase], index: usize, query: &MapQuery) -> Result<String> {
     let after = phases.get(index).ok_or("Choose an available phase.")?;
     Ok(format!(
-        r#"{{"before":{},"after":{}}}"#,
+        r#"{{"before":{},"after":{},"beforeTrace":{},"afterTrace":{}}}"#,
         query.score(&phases[0].network)?,
         query.score(&after.network)?,
+        phases[0].report.trace(),
+        after.report.trace(),
     ))
 }
 
@@ -460,13 +482,16 @@ mod tests {
     #[test]
     fn e17_s06_s07_s09_routed_matched_reversible_phases() {
         let plan = Plan::parse("0,1", "1900", "200", "30").unwrap();
-        let phases = run(&plan).unwrap();
+        let completed = run(&plan).unwrap();
+        let phases = &completed.phases;
         assert_eq!(phases.len(), 3);
         let query = MapQuery::parse("1", "walk", "step-free", "0", "2", "25").unwrap();
-        let baseline = compare(&phases, 0, &query).unwrap();
-        let change = compare(&phases, 1, &query).unwrap();
-        assert_ne!(baseline, change);
-        assert_eq!(compare(&phases, 0, &query).unwrap(), baseline);
+        let baseline = compare(phases, 0, &query).unwrap();
+        assert_ne!(
+            query.score(&phases[0].network).unwrap(),
+            query.score(&phases[1].network).unwrap(),
+        );
+        assert_eq!(compare(phases, 0, &query).unwrap(), baseline);
         assert_ne!(phases[0].view(), phases[2].view());
         assert!(MapQuery::parse("1", "walk-bus", "step-free", "8", "14", "180").is_err());
     }

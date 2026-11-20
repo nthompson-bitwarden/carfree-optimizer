@@ -89,7 +89,9 @@ cargo run --locked --offline -p mobility-api --bin spatial-workbench
 
 Open the printed loopback URL. Inspect the Census boundary and dataset gaps,
 then use the synthetic network to screen a corridor, run a scenario and compare
-accessibility over construction phases. See the [demo and tests](web/README.md).
+accessibility over construction phases. Inspect modeled trip groups, sensitivity
+ranges and cost–access trade-offs, then download the audit report. See the
+[demo and tests](web/README.md).
 
 ## Constrained reference optimization environment
 
