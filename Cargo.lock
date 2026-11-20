@@ -638,7 +638,11 @@ dependencies = [
 name = "optimizer-env"
 version = "0.1.0"
 dependencies = [
+ "accessibility",
  "interventions",
+ "mobility-graph",
+ "mobility-routing",
+ "mobility-sim",
 ]
 
 [[package]]

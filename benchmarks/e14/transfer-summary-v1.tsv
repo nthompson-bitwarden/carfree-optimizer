@@ -1,0 +1,156 @@
+source-sha256	4131c54359f19942f9600faac5ccc93ab4161999167d5ed046f5ce31c4482337
+experiment-sha256	0dc1633731ad1d2b51c5054d443c30bbd5497c1f2da5122cdaf7b03a6a0a3a5f
+compiler	rustc 1.97.1 (8bab26f4f 2026-07-14)
+e14-experiments	1	synthetic-only; no calibration or cross-city policy claim
+split	train	0,1	seeds=7,19
+split	heldout	4,7	seeds=31,47,73
+compute	parameters=12	candidates=8	training_topologies=2	training_seeds=2	selection=training-only
+outcome-schema	total-trip-weight	reference-car-required-weight	reference-car-free-weight	no-mode-weight	unserved-weight	unserved-essential-weight	fixed-door-parity	capital-upper-major	annual-upper-major-per-year
+seed-interpretation	preference-noise-disabled; deterministic replay spread only, not stochastic uncertainty
+diagnostic-component	known-capacity-denial	reference_car_required_share	0	6	1	1	0
+diagnostic-component	known-capacity-denial	reference_car_free_share	0	6	0.5	1	0
+diagnostic-component	known-capacity-denial	fixed_door_parity	0	1	1	1	0
+diagnostic-constraint	known-capacity-denial	unserved	2	0	false
+diagnostic-constraint	known-capacity-denial	denied	2	0	false
+diagnostic-constraint	known-capacity-denial	essential_unserved	2	0	false
+diagnostic-constraint	known-capacity-denial	noncycling_unserved	2	0	false
+diagnostic-constraint	known-capacity-denial	step_free_unserved	2	0	false
+diagnostic-constraint	known-capacity-denial	newly_unserved_essential	2	0	false
+diagnostic-constraint	known-capacity-denial	newly_unserved_noncycling	2	0	false
+diagnostic-constraint	known-capacity-denial	newly_unserved_step_free	2	0	false
+diagnostic-constraint	known-capacity-denial	gross_essential_car_free_loss	0	0	true
+diagnostic-constraint	known-capacity-denial	gross_noncycling_car_free_loss	0	0	true
+diagnostic-constraint	known-capacity-denial	gross_step_free_car_free_loss	0	0	true
+diagnostic-constraint	known-capacity-denial	no_mode	0	0	true
+diagnostic-constraint	known-capacity-denial	essential_car_free	0	0	true
+diagnostic-constraint	known-capacity-denial	noncycling_car_free	0	0	true
+diagnostic-constraint	known-capacity-denial	step_free_car_free	0	0	true
+diagnostic	known-capacity-denial	rejected-without-mutation
+normalizer	full	vector-linear	1,60,8,20,1,100,1,6,4,1,1,1
+policy	full	vector-linear	-0.34415397232668266,0.7090608482605538,-0.9488366310722123,0.2452825231423872,0.7522703086757669,0.25365350946609855,0.9933877822386463,0.7993737632406128,0.0026025514381544657,-0.5301766429104056,-0.39212864629762056,0.23546539683848322	training_reward=5.929125138427464	training_failures=0
+outcome	full	vector-linear	heldout	4	31	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	full	vector-linear	heldout	4	47	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	full	vector-linear	heldout	4	73	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	full	vector-linear	4	n=3	mean=1.4634146341463414	between_seed_sample_variance=0	no-confidence-interval
+outcome	full	vector-linear	heldout	7	31	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	full	vector-linear	heldout	7	47	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	full	vector-linear	heldout	7	73	6	0	6	0	0	0	1	100	20
+outcome	full	vector-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	full	vector-linear	7	n=3	mean=1.4210526315789473	between_seed_sample_variance=0	no-confidence-interval
+normalizer	full	graph-message-linear	1,60,8,20,1,100,7,6,10.5,4,4,11.333333333333334
+policy	full	graph-message-linear	0.155340868096574,-0.22815717249862266,0.09214246040615404,0.6710650964769951,-0.2671923900130624,0.4532090968049347,0.8796742114844851,0.7069718106092275,0.8765646185550777,0.1392831714437135,0.9940399417975379,-0.31520850463377137	training_reward=5.929125138427464	training_failures=0
+outcome	full	graph-message-linear	heldout	4	31	6	0	6	0	0	0	1	100	20
+outcome	full	graph-message-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	full	graph-message-linear	heldout	4	47	6	0	6	0	0	0	1	100	20
+outcome	full	graph-message-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	full	graph-message-linear	heldout	4	73	6	0	6	0	0	0	1	100	20
+outcome	full	graph-message-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	full	graph-message-linear	4	n=3	mean=1.4634146341463414	between_seed_sample_variance=0	no-confidence-interval
+outcome	full	graph-message-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	full	graph-message-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	full	graph-message-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	full	graph-message-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	full	graph-message-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	full	graph-message-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	full	graph-message-linear	7	n=3	mean=0.42105263157894735	between_seed_sample_variance=0	no-confidence-interval
+normalizer	no-car-required	vector-linear	1,60,8,20,1,100,1,6,4,1,1,1
+policy	no-car-required	vector-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=3.262458471760797	training_failures=0
+outcome	no-car-required	vector-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-car-required	vector-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-car-required	vector-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	no-car-required	vector-linear	4	n=3	mean=0.7967479674796748	between_seed_sample_variance=0	no-confidence-interval
+outcome	no-car-required	vector-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-car-required	vector-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-car-required	vector-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	vector-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	no-car-required	vector-linear	7	n=3	mean=0.42105263157894735	between_seed_sample_variance=0	no-confidence-interval
+normalizer	no-car-required	graph-message-linear	1,60,8,20,1,100,7,6,10.5,4,4,11.333333333333334
+policy	no-car-required	graph-message-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=3.262458471760797	training_failures=0
+outcome	no-car-required	graph-message-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-car-required	graph-message-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-car-required	graph-message-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	no-car-required	graph-message-linear	4	n=3	mean=0.7967479674796748	between_seed_sample_variance=0	no-confidence-interval
+outcome	no-car-required	graph-message-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-car-required	graph-message-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-car-required	graph-message-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	no-car-required	graph-message-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	no-car-required	graph-message-linear	7	n=3	mean=0.42105263157894735	between_seed_sample_variance=0	no-confidence-interval
+normalizer	no-parity	vector-linear	1,60,8,20,1,100,1,6,4,1,1,1
+policy	no-parity	vector-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=4	training_failures=0
+outcome	no-parity	vector-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-parity	vector-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-parity	vector-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	no-parity	vector-linear	4	n=3	mean=1	between_seed_sample_variance=0	no-confidence-interval
+outcome	no-parity	vector-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-parity	vector-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-parity	vector-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	no-parity	vector-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	no-parity	vector-linear	7	n=3	mean=0	between_seed_sample_variance=0	no-confidence-interval
+normalizer	no-parity	graph-message-linear	1,60,8,20,1,100,7,6,10.5,4,4,11.333333333333334
+policy	no-parity	graph-message-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=4	training_failures=0
+outcome	no-parity	graph-message-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-parity	graph-message-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	no-parity	graph-message-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	no-parity	graph-message-linear	4	n=3	mean=1	between_seed_sample_variance=0	no-confidence-interval
+outcome	no-parity	graph-message-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-parity	graph-message-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	no-parity	graph-message-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	no-parity	graph-message-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	no-parity	graph-message-linear	7	n=3	mean=0	between_seed_sample_variance=0	no-confidence-interval
+normalizer	feasibility-only	vector-linear	1,60,8,20,1,100,1,6,4,1,1,1
+policy	feasibility-only	vector-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=1.3333333333333333	training_failures=0
+outcome	feasibility-only	vector-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	feasibility-only	vector-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	feasibility-only	vector-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	feasibility-only	vector-linear	4	n=3	mean=0.3333333333333333	between_seed_sample_variance=0	no-confidence-interval
+outcome	feasibility-only	vector-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	feasibility-only	vector-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	feasibility-only	vector-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	vector-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	feasibility-only	vector-linear	7	n=3	mean=0	between_seed_sample_variance=0	no-confidence-interval
+normalizer	feasibility-only	graph-message-linear	1,60,8,20,1,100,7,6,10.5,4,4,11.333333333333334
+policy	feasibility-only	graph-message-linear	-2,0,0,-1,0,0,0,0,0,0,0,0	training_reward=1.3333333333333333	training_failures=0
+outcome	feasibility-only	graph-message-linear	heldout	4	31	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	4	31	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	feasibility-only	graph-message-linear	heldout	4	47	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	4	47	6	4	2	0	0	0	0.5365853658536586	0	5
+outcome	feasibility-only	graph-message-linear	heldout	4	73	6	0	6	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	4	73	6	4	2	0	0	0	0.5365853658536586	0	5
+summary	feasibility-only	graph-message-linear	4	n=3	mean=0.3333333333333333	between_seed_sample_variance=0	no-confidence-interval
+outcome	feasibility-only	graph-message-linear	heldout	7	31	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	7	31	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	feasibility-only	graph-message-linear	heldout	7	47	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	7	47	6	4	2	0	0	0	0.5789473684210527	0	5
+outcome	feasibility-only	graph-message-linear	heldout	7	73	6	4	2	0	0	0	1	85	19
+outcome	feasibility-only	graph-message-linear	stop-baseline	7	73	6	4	2	0	0	0	0.5789473684210527	0	5
+summary	feasibility-only	graph-message-linear	7	n=3	mean=0	between_seed_sample_variance=0	no-confidence-interval

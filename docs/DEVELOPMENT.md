@@ -3,7 +3,8 @@
 This setup implements E01-S02 and the infrastructure gates for E01-S04. It needs
 Bash, Git (for benchmark revision metadata), rustup, and Python 3.11 or newer
 with standard-library `tomllib`, the Protocol Buffers compiler (`protoc`),
-and a C toolchain for the Parquet Zstd codec. No Python packages are required. The Rust toolchain is pinned to 1.97.1 in `rust-toolchain.toml`;
+and a C toolchain for the Parquet Zstd codec. Core bootstrap needs no Python
+packages; E14 training checks additionally use pinned Gymnasium/NumPy. The Rust toolchain is pinned to 1.97.1 in `rust-toolchain.toml`;
 `Cargo.lock` is committed. Install once, then run the one-command setup:
 
 ```sh
@@ -29,6 +30,23 @@ python3 scripts/check-dependencies.py
 python3 -m unittest discover -s tests/foundations -v
 ```
 
+For E14 changes, also install `training/requirements.txt` in a virtual environment,
+build the real Rust batch/experiment examples and run the actual Gymnasium,
+transport, profiling-schema and held-out-isolation checks (no optional skips):
+
+```sh
+python3 -m venv .codex/run/e14-venv
+.codex/run/e14-venv/bin/python -m pip install -r training/requirements.txt
+rustup run 1.97.1 cargo build --locked --offline -p optimizer-bridge --examples
+.codex/run/e14-venv/bin/python -m compileall -q training
+PYTHONPATH=training .codex/run/e14-venv/bin/python -m unittest discover -s training/tests -v
+rustup run 1.97.1 cargo test --locked --offline -p optimizer-bridge --example e14_experiments
+```
+
+See [E14 schemas, experiments and measured profiling](RL-ENVIRONMENT.md) and
+[ADR 0005](adr/0005-bounded-rl-process-binding.md). Python remains outside domain
+calculations and traveler hot paths.
+
 The BDD-style foundation scenarios map to E01-S01–06 and check isolation,
 bootstrap behavior and missing-tool errors, dependency rejection, benchmark
 history/comparison failure handling, and contract/ADR presence. Structural checks
@@ -46,7 +64,8 @@ The `Rust CI` job targets `ubuntu-24.04`, with Python 3.12 and
 the Rust repository pin. Pull requests and manual dispatch install `protoc`,
 fetch the locked dependencies, then run bootstrap, formatting,
 clippy, workspace tests, dependency policy, and the
-foundation suite. Workflow configuration alone does not prove the job passed:
+foundation suite, followed by E14 dependency installation, actual Rust-example
+build, Python syntax and Gymnasium/experiment checks. Workflow configuration alone does not prove the job passed:
 delivery evidence must identify the actual candidate SHA and runner result.
 Push events do not trigger CI, avoiding duplicate runs when an open PR is updated.
 This also omits automatic post-merge checks on `main`; use manual dispatch when a
