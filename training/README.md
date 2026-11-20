@@ -24,6 +24,7 @@ stop-only baseline. They are not PyTorch/GNN/RL training or empirical cross-city
 validation. No graph superiority, calibrated car independence or deployment
 readiness is assumed.
 
-Future optimization algorithms must use the same feasible catalogs, budgets and
-seeds as simple baselines and preserve mobility constraints and uncertainty.
+[E15 optimization benchmarks](../docs/OPTIMIZATION.md) compare random, greedy,
+local, evolutionary and RL-guided search on matched synthetic cases, and
+include a deterministic warm-start ablation and a standalone HTML dashboard.
 PyO3/maturin and PyTorch remain future, independently justified integrations.
