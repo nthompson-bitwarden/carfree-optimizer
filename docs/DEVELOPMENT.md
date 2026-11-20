@@ -43,6 +43,16 @@ PYTHONPATH=training .codex/run/e14-venv/bin/python -m unittest discover -s train
 rustup run 1.97.1 cargo test --locked --offline -p optimizer-bridge --example e14_experiments
 ```
 
+E16 additionally requires the actual Linux quota/remote-worker launch-path suite
+(no silent skips). On a 64-bit Linux worker, after building the examples:
+
+```sh
+PYTHONPATH=training python3 training/tests/e16_linux_acceptance.py
+```
+
+On other hosts, run the control-plane tests locally and this suite on Linux.
+See [experiment job contracts, demo and limitations](EXPERIMENT-JOBS.md).
+
 See [E14 schemas, experiments and measured profiling](RL-ENVIRONMENT.md) and
 [ADR 0005](adr/0005-bounded-rl-process-binding.md). Python remains outside domain
 calculations and traveler hot paths.
