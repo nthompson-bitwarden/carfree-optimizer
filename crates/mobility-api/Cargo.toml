@@ -11,3 +11,9 @@ mobility-graph = { path = "../mobility-graph" }
 mobility-routing = { path = "../mobility-routing" }
 interventions = { path = "../interventions" }
 optimizer-env = { path = "../optimizer-env" }
+getrandom = "=0.4.3"
+parquet = { version = "=58.3.0", default-features = false }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = { version = "=1.0.149", features = ["raw_value"] }
+sha2 = "=0.11.1"
+tempfile = "=3.27.0"

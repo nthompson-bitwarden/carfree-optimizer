@@ -544,12 +544,18 @@ dependencies = [
 name = "mobility-api"
 version = "0.1.0"
 dependencies = [
+ "getrandom 0.4.3",
  "interventions",
  "mobility-graph",
  "mobility-ingest",
  "mobility-routing",
  "mobility-sim",
  "optimizer-env",
+ "parquet",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]

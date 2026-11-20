@@ -1,0 +1,47 @@
+{
+  "schema": "carfree-workspace-extensions-v1",
+  "manifest_version": 1,
+  "validate": "/api/e19/v1/extensions/validate",
+  "contracts": {
+    "optimizer-plan-v1": {
+      "input": "carfree-workspace-evaluation-v1",
+      "output": "OpenAPI Plan",
+      "consumer": "POST /projects/{project}/scenarios or POST /projects/{project}/scenarios/{scenario}/revisions",
+      "example": {
+        "id": "example-optimizer",
+        "version": 1,
+        "contract": "optimizer-plan-v1",
+        "sample": {"projects": [0], "width": 1900, "capital": 200, "annual": 30}
+      }
+    },
+    "dataset-upload-v1": {
+      "output": "E03 schema-v1 custom mapped upload request",
+      "consumer": "ingest-data inspect, followed by an explicit local apply",
+      "example": {
+        "id": "example-counts",
+        "version": 1,
+        "contract": "dataset-upload-v1",
+        "sample": {
+          "schema_version": 1,
+          "source": {
+            "id": "example-counts",
+            "version": "1",
+            "uri": "file:counts.csv",
+            "attribution": "Repository-authored synthetic sample schema",
+            "license_terms": "MIT",
+            "retrieved_on": "2026-01-05",
+            "geography": "synthetic",
+            "coverage": "example only",
+            "review": "redistribution_approved"
+          },
+          "input": {
+            "kind": "custom",
+            "path": "counts.csv",
+            "format": "csv",
+            "fields": {"count": {"column": "count", "type": "integer", "required": true}}
+          }
+        }
+      }
+    }
+  }
+}
