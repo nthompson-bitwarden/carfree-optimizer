@@ -340,3 +340,9 @@ This project generates *planning scenarios*, not approved engineering or transpo
 ## License
 
 This project uses the [MIT License](LICENSE).
+
+## Contributing and release verification
+
+Follow the [contributor demo](CONTRIBUTING.md) to run the public synthetic
+fixture. See [release verification and recovery](docs/RELEASE-VERIFICATION.md)
+and the [model card](docs/MODEL-CARD.md) for the tested operating scope.

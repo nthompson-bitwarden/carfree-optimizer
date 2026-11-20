@@ -1,5 +1,6 @@
 use super::*;
 use quick_xml::{
+    escape::unescape,
     events::{BytesStart, Event},
     Reader,
 };
@@ -58,9 +59,12 @@ fn attrs(reader: &Reader<impl std::io::BufRead>, start: &BytesStart<'_>) -> Resu
     for item in start.attributes() {
         let attr = item.map_err(xml_error)?;
         let key = std::str::from_utf8(attr.key.as_ref()).map_err(xml_error)?;
-        let value = attr
-            .decode_and_unescape_value(reader.decoder())
+        // Preserve the original snapshot semantics for literal attribute whitespace.
+        let decoded = reader
+            .decoder()
+            .decode(attr.value.as_ref())
             .map_err(xml_error)?;
+        let value = unescape(&decoded).map_err(xml_error)?;
         fields.insert(key.to_owned(), value.into_owned());
     }
     Ok(fields)
@@ -363,4 +367,19 @@ pub(super) fn read(root: &Path, path: &Path, report: &mut Report) -> Result<Valu
         .map(|(id, rel)| (id.to_string(), rel))
         .collect();
     Ok(json!({"ways":ways, "nodes":nodes, "restrictions":restrictions}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn e20_legacy_osm_attribute_whitespace_and_escaped_entities_replay() {
+        let mut reader = Reader::from_reader(b"<tag v=\"A\tB\n&amp;C\"/>".as_slice());
+        let mut buffer = Vec::new();
+        let Event::Empty(tag) = reader.read_event_into(&mut buffer).unwrap() else {
+            panic!("expected fixture tag");
+        };
+        assert_eq!(attrs(&reader, &tag).unwrap()["v"], "A\tB\n&C");
+    }
 }

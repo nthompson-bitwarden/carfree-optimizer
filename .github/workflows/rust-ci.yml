@@ -18,6 +18,13 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
+      - run: cargo build --locked --offline -p mobility-api --bin spatial-workbench
+      - run: python3 tests/acceptance/e20_workspace.py target/debug/spatial-workbench
+      - run: cargo build --locked --offline -p mobility-sim --example e08_simulation
+      - run: |
+          python3 -m venv /tmp/carfree-sumo
+          /tmp/carfree-sumo/bin/python -m pip install eclipse-sumo==1.28.0 sumo-data==1.28.0
+          PATH="/tmp/carfree-sumo/bin:$PATH" python3 tests/acceptance/e20_sumo.py target/debug/examples/e08_simulation
       - run: python3 scripts/check-dependencies.py
       - run: python3 -m unittest discover -s tests/foundations -v
       - run: python3 -m pip install -r training/requirements.txt
@@ -26,3 +33,39 @@ jobs:
       - run: python3 -m compileall -q training
       - run: PYTHONPATH=training python3 -m unittest discover -s training/tests -v
       - run: PYTHONPATH=training python3 training/tests/e16_linux_acceptance.py
+
+  macos-smoke:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: brew install protobuf
+      - run: cargo fetch --locked
+      - run: ./scripts/bootstrap.sh
+      - run: cargo build --locked --offline -p mobility-api --bin spatial-workbench
+      - run: python3 tests/acceptance/e20_workspace.py target/debug/spatial-workbench
+
+  container-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t carfree-local:ci .
+      - run: >-
+          docker run --rm --network none --read-only --tmpfs /tmp
+          carfree-local:ci python3 /opt/carfree/e20_workspace.py /usr/local/bin/spatial-workbench
+
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo audit --file Cargo.lock
+      - if: always()
+        run: |
+          python3 -m pip install pip-audit==2.10.1
+          python3 -m pip_audit -r training/requirements.txt

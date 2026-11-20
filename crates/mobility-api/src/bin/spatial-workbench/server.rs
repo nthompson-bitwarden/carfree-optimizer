@@ -1,6 +1,7 @@
 //! Loopback-only HTTP/1.1 surface for the bundled workbench.
 use crate::{
     model::{self, Completed, MapQuery, Plan},
+    telemetry,
     workspace::{self, Workspace},
 };
 use std::{
@@ -81,6 +82,7 @@ impl Jobs {
         let (queue, entries) = mpsc::sync_channel::<(u64, Plan)>(4);
         std::thread::spawn(move || {
             for (id, plan) in entries {
+                let started = Instant::now();
                 worker_ledger
                     .lock()
                     .unwrap()
@@ -88,9 +90,13 @@ impl Jobs {
                     .get_mut(&id)
                     .unwrap()
                     .state = State::Running;
-                let result = match evaluate(plan) {
-                    Ok(phases) => State::Completed(Arc::new(phases)),
-                    Err(error) => State::Failed(error),
+                telemetry::workbench(id, telemetry::State::Running, started);
+                let (result, status) = match evaluate(plan) {
+                    Ok(phases) => (
+                        State::Completed(Arc::new(phases)),
+                        telemetry::State::Completed,
+                    ),
+                    Err(error) => (State::Failed(error), telemetry::State::EvaluationFailed),
                 };
                 worker_ledger
                     .lock()
@@ -99,6 +105,7 @@ impl Jobs {
                     .get_mut(&id)
                     .unwrap()
                     .state = result;
+                telemetry::workbench(id, status, started);
             }
         });
         Self { ledger, queue }

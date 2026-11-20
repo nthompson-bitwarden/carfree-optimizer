@@ -86,3 +86,8 @@ commands in [BENCHMARKS.md](BENCHMARKS.md). No UI or running application is
 introduced by this milestone. Module ownership is in
 [MODULE-CONTRACTS.md](MODULE-CONTRACTS.md); signed issue delivery follows
 [AGENT-WORKFLOW.md](AGENT-WORKFLOW.md).
+
+E20 adds a macOS smoke, a Linux container smoke, and independent advisory
+scans for the locked Rust and Python training dependencies. See
+[release verification and recovery](RELEASE-VERIFICATION.md) for reproduction,
+restore checks and scientific evidence.

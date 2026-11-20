@@ -1,10 +1,15 @@
 mod model;
 mod server;
+mod telemetry;
 mod workspace;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let port: u16 = match args.next() {
+        Some(flag) if flag == "--version" && args.next().is_none() => {
+            println!("spatial-workbench {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
         Some(port) => port.to_str().ok_or("Invalid port.")?.parse()?,
         None => 8047,
     };

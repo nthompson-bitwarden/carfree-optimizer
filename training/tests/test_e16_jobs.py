@@ -1,5 +1,6 @@
 """E16 Given/When/Then durable orchestration acceptance (stdlib only)."""
 import hashlib
+from io import StringIO
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -144,6 +145,61 @@ class Jobs(unittest.TestCase):
         bad = Client(client.url, "wrong")
         with self.assertRaises(Exception):
             bad.call("status", job=job)
+
+    def test_e20_s04_s06_job_trace_and_attempt_log_exclude_capabilities(self):
+        secret = secrets.token_hex(32)
+        server = serve(self.store, secret, port=0)
+        self.addCleanup(server.server_close)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        client = Client(f"http://127.0.0.1:{server.server_port}", secret)
+        stderr = StringIO()
+        self.spec["max_attempts"] = 1
+        self.spec["seeds"] = [7]
+        with patch("experiment_jobs.sys.stderr", stderr):
+            job = client.call("submit", spec=self.spec)
+            lease = client.call("claim", worker="fixture", request_id=secrets.token_hex(32),
+                                evaluator_sha256=self.spec["evaluator_sha256"])
+            log = f"fixture diagnostics {secret} {lease['token']}"
+            self.assertTrue(client.call("progress", token=lease["token"], scenarios=1,
+                                        failures=0, score=None, log=log))
+            completion = dict(self.result(lease), score=None, log=log)
+            self.assertFalse(client.call("finish", **completion))
+            self.assertFalse(client.call("finish", **completion))
+            with self.assertRaises(ValueError):
+                client.call("finish", **dict(completion, log=f"fixture diagnostics {'0' * 64} {lease['token']}"))
+            status = client.call("status", job=job)
+        events = [json.loads(line) for line in stderr.getvalue().splitlines()]
+        self.assertEqual([(event["job"], event["status"]) for event in events],
+                         [(job, "submitted"), (job, "running"), (job, "attempt_reaped"), (job, "failed")])
+        self.assertEqual(events[1]["attempt"], events[2]["attempt"])
+        self.assertEqual(events[-1]["attempt_failures"], 1)
+        self.assertIn("inspect", events[-1]["action"])
+        self.assertEqual(status["attempts"][0]["log"], "fixture diagnostics * *")
+        self.assertNotIn("log_sha256", json.dumps(status))
+        for capability in (secret, lease["token"]):
+            self.assertNotIn(capability, stderr.getvalue())
+            self.assertNotIn(capability, json.dumps(status))
+
+    def test_e20_s06_completion_replay_accepts_legacy_log_after_credential_rotation(self):
+        job = self.submit()
+        lease = self.claim("fixture")
+        old_bearer = secrets.token_hex(32)
+        completion = dict(self.result(lease), log=f"fixture {old_bearer} {lease['token']}")
+        self.assertTrue(self.store.finish(**completion))
+        new_bearer = secrets.token_hex(32)
+        server = serve(self.store, new_bearer, port=0)
+        self.addCleanup(server.server_close)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        client = Client(f"http://127.0.0.1:{server.server_port}", new_bearer)
+        self.assertTrue(client.call("finish", **completion))
+        with self.assertRaises(ValueError):
+            client.call("finish", **dict(completion, score=0.0))
+        status = client.call("status", job=job)
+        self.assertEqual(status["results"][0]["log"], "fixture * *")
+        self.assertNotIn(old_bearer, json.dumps(status))
+        self.assertNotIn(lease["token"], json.dumps(status))
 
     def test_s06_lost_claim_reply_recovers_same_reservation_and_incompatible_worker_does_not_charge(self):
         job = self.submit()

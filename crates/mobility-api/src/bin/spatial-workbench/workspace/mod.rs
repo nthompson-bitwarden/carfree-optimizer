@@ -497,6 +497,8 @@ impl Workspace {
     }
 
     fn run(&mut self, p: usize, s: usize, r: usize, location: String) -> Result<Response> {
+        use crate::telemetry::{self, State};
+        let started = std::time::Instant::now();
         let project = &self.store.ledger.projects[p];
         let revision = &project.scenarios[s].revisions[r];
         if matches!(revision.job, Some(Job::Completed { .. })) {
@@ -511,6 +513,7 @@ impl Workspace {
             ledger.projects[p].scenarios[s].revisions[r].job = Some(Job::Running);
             Ok(())
         })?;
+        telemetry::workspace(p, s, r, State::Running, started);
         let job = match model::run(&resolved) {
             Ok(result) => match export::evaluation(&inputs, &input, result) {
                 Ok(result) => Job::Completed { result },
@@ -518,9 +521,9 @@ impl Workspace {
             },
             Err(error) => Job::Failed { error },
         };
-        let status = match job {
-            Job::Completed { .. } => "completed",
-            Job::Failed { .. } => "failed",
+        let (status, event) = match job {
+            Job::Completed { .. } => ("completed", State::Completed),
+            Job::Failed { .. } => ("failed", State::EvaluationFailed),
             _ => unreachable!(),
         };
         let saved = self.store.change(|ledger| {
@@ -546,6 +549,12 @@ impl Workspace {
                 self.store.ledger.projects[p].scenarios[s].revisions[r].job = Some(failed);
             }
         }
+        let event = if saved.is_ok() {
+            event
+        } else {
+            State::SaveFailed
+        };
+        telemetry::workspace(p, s, r, event, started);
         saved
     }
 }
