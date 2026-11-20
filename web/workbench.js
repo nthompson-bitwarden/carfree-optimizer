@@ -322,7 +322,7 @@ async function poll(id) {
     showSubmittedPlan(plan);
     if (result.status === "completed") {
       status("run-status", "Completed · run " + id);
-      await showRun(id, plan, result.phases);
+      await showRun(id, plan, result.phases, result.report);
       return;
     }
     if (result.status === "failed") {
@@ -334,9 +334,20 @@ async function poll(id) {
   }
 }
 
-async function showRun(id, plan, phases) {
+async function showRun(id, plan, phases, report) {
   stopPlayback();
-  completed = {id, phases};
+  completed = {id, plan, phases, report};
+  const metric = get("report-metric");
+  const previousMetric = metric.value;
+  metric.replaceChildren(...report.metrics.map(([name, unit], i) => option(i, name + " (" + unit + ")")));
+  metric.value = previousMetric || "1";
+  for (const key of ["calibration", "assumptions", "uncertainty", "limitations"]) {
+    get("report-" + key).textContent = report.methodology[key];
+  }
+  drawTradeoffs();
+  drawReportMetric();
+  drawPhaseTrace(phases.length - 1);
+  get("results-report").hidden = false;
   get("result-plan").textContent = "Run " + id + " · " + planSummary(plan);
   displayed = null;
   get("phase").replaceChildren(...phases.map((phase, i) => option(i, phaseLabel(phase, i))));
@@ -392,28 +403,178 @@ function drawComparison() {
     + labelFor(origin) + " · " + fields.modes.replace("-", " + ") + " · " + fields.profile + " · departures " + fields.start + "–" + fields.end + " s · limit " + fields.seconds + " s";
   get("after-title").textContent = phaseLabel(current, phase);
   get("phase-column").textContent = phaseLabel(current, phase);
-  drawMetrics(phases[0], current);
+  drawMetrics(phases[0], current, phase);
+  drawOriginGroups(origin, phase);
+  drawPhaseTrace(phase);
 }
 
-function drawMetrics(baseline, after) {
-  const share = (value, total) => total > 0 ? (100 * value / total).toFixed(1) + "%" : "Unavailable";
-  const rows = [
-    ["Essential trips unserved · assignment", (p) => share(p.metrics.essentialUnserved, p.metrics.essentialTotal)],
-    ["Essential trips with no feasible mode · reference", (p) => share(p.metrics.essentialNoMode, p.metrics.essentialReferenceTotal)],
-    ["Essential trips requiring a car · reference", (p) => share(p.metrics.essentialCarRequired, p.metrics.essentialReferenceTotal)],
-    ["Noncycling cohort unserved · weighted trips", (p) => p.metrics.noncyclingUnserved],
-    ["Step-free cohort unserved · weighted trips", (p) => p.metrics.stepFreeUnserved],
-    ["Assignment status", (p) => p.metrics.assignment],
-    ["Capital · 2026 USD", (p) => range(p.budget[0])],
-    ["Annual commitments · 2026 USD/year", (p) => range(p.budget[1])],
-  ];
-  get("phase-metrics").replaceChildren(...rows.map(([label, value]) => {
-    const row = create("tr");
-    const heading = create("th", label);
-    heading.scope = "row";
-    row.append(heading, create("td", value(baseline)), create("td", value(after)));
-    return row;
+const reportNumber = new Intl.NumberFormat("en-US", {maximumFractionDigits: 3});
+
+function formatNumber(value, signed = false) {
+  if (value === null) return "Unavailable";
+  if (Math.abs(value) < 0.0005) return "0";
+  return (signed && value > 0 ? "+" : "") + reportNumber.format(value);
+}
+
+function changeUnit(unit) {
+  return unit === "%" ? "pp" : unit;
+}
+
+function describeChange(value, unit) {
+  return value === null ? "Unavailable" : formatNumber(value, true) + " " + changeUnit(unit);
+}
+
+function reportRow(label, cells) {
+  const row = create("tr");
+  const heading = create("th", label);
+  heading.scope = "row";
+  row.append(heading, ...cells.map((value) => create("td", value)));
+  return row;
+}
+
+function drawMetrics(baseline, after, phase) {
+  const {metrics, phases} = completed.report;
+  const rows = metrics.map(([name, unit], i) => reportRow(name + " (" + unit + ")", [
+    formatNumber(phases[0].values[i]),
+    formatNumber(phases[phase].values[i]),
+    describeChange(phases[phase].cumulative[i], unit),
+  ]));
+  rows.push(reportRow("Assignment status", [
+    baseline.metrics.assignment, after.metrics.assignment, "—",
+  ]));
+  for (const [index, label] of ["Capital", "Annual commitments"].entries()) {
+    rows.push(reportRow(label + " with supplied bounds (" + metrics[6 + index][1] + ")", [
+      range(baseline.budget[index]), range(after.budget[index]), "—",
+    ]));
+  }
+  get("phase-metrics").replaceChildren(...rows);
+  const totals = [phases[0], phases[phase]];
+  get("phase-denominators").textContent = "Essential trip denominators (baseline → phase, weighted trips). Assignment "
+    + totals.map((row) => formatNumber(row.assignmentEssentialTotal)).join(" → ")
+    + " · Reference " + totals.map((row) => formatNumber(row.referenceEssentialTotal)).join(" → ") + ".";
+}
+
+function drawOriginGroups(origin, phase) {
+  const phases = completed.report.phases;
+  const baseline = phases[0].groups.filter((row) => row.origin === origin);
+  const after = phases[phase].groups.filter((row) => row.origin === origin);
+  get("groups-scroll").hidden = after.length === 0;
+  get("groups-caption").textContent = after.length
+    ? labelFor(origin) + " · " + after[0].zone + " · weighted trips for the fixture’s fixed demand. Map mode and profile controls do not change these cohorts."
+    : labelFor(origin) + " has no modeled trip groups in the fixture.";
+  const modes = (row) => row.served.map(([mode, value]) => mode + " " + formatNumber(value)).join(", ") || "None";
+  const noCarFree = (row) => row.referenceUnknown ? "Unavailable" : formatNumber(row.carRequired + row.noMode);
+  get("report-groups").replaceChildren(...after.map((row, i) => reportRow(row.group, [
+    formatNumber(row.total),
+    modes(baseline[i]) + " → " + modes(row),
+    formatNumber(baseline[i].unserved) + " → " + formatNumber(row.unserved),
+    noCarFree(baseline[i]) + " → " + noCarFree(row),
+  ])));
+}
+
+function drawReportMetric() {
+  const {metrics, phases, sensitivity} = completed.report;
+  const index = Number(get("report-metric").value);
+  const [name, unit] = metrics[index];
+  const describe = (value) => describeChange(value, unit);
+  const steps = phases.slice(1);
+  get("phase-changes").replaceChildren(...steps.map((row, i) =>
+    reportRow(phaseLabel(completed.phases[i + 1], i + 1), [
+      describe(row.incremental[index]), describe(row.cumulative[index]),
+    ])));
+
+  const chart = graphic("svg", {viewBox: "0 0 520 " + (steps.length * 58 + 34), class: "report-chart"});
+  const max = Math.max(0.0005, ...steps.flatMap((row) => [Math.abs(row.incremental[index]), Math.abs(row.cumulative[index])]));
+  const zero = 290;
+  chart.append(graphic("line", {x1: zero, x2: zero, y1: 1, y2: steps.length * 58 + 5, class: "report-axis"}));
+  steps.forEach((row, i) => {
+    const label = graphic("text", {x: 5, y: i * 58 + 29});
+    label.textContent = "Phase " + (i + 1);
+    chart.append(label);
+    [row.incremental[index], row.cumulative[index]].forEach((value, j) => {
+      if (value === null) return;
+      const width = value / max * 135;
+      const bar = graphic("rect", {
+        x: width < 0 ? zero + width : zero, y: i * 58 + 9 + j * 19,
+        width: Math.abs(width), height: 13, rx: 2, class: j ? "cumulative" : "incremental",
+      });
+      const text = graphic("text", {
+        x: zero + width + (width < 0 ? -6 : 6), y: i * 58 + 20 + j * 19,
+        "text-anchor": width < 0 ? "end" : "start",
+      });
+      text.textContent = formatNumber(value, true);
+      chart.append(bar, text);
+    });
+  });
+  const y = steps.length * 58 + 22;
+  for (const [index, [kind, label]] of [["incremental", "Increment"], ["cumulative", "Cumulative"]].entries()) {
+    const x = 158 + index * 110;
+    chart.append(graphic("rect", {x, y: y - 10, width: 12, height: 10, class: kind}));
+    const text = graphic("text", {x: x + 17, y});
+    text.textContent = label;
+    chart.append(text);
+  }
+  get("phase-chart").replaceChildren(chart);
+
+  const bounds = sensitivity.ranges[index];
+  get("sensitivity-range").textContent = bounds
+    ? name + " changes from " + describe(bounds[0]) + " to " + describe(bounds[1])
+      + " across " + bounds[2] + " of " + (sensitivity.cases.length + 1) + " matched tests, including nominal."
+    : name + " has no available matched changes.";
+  get("sensitivity-cases").replaceChildren(
+    reportRow("Nominal", ["Fixed fixture settings.", describe(phases.at(-1).cumulative[index])]),
+    ...sensitivity.cases.map((row) => reportRow(row.assumption, [
+      row.detail, row.error ? "Excluded from range · " + row.error : describe(row.changes[index]),
+    ])),
+  );
+}
+
+function drawTradeoffs() {
+  const tradeoffs = completed.report.tradeoffs;
+  const preference = get("report-priority").value;
+  const frontier = tradeoffs.alternatives.filter((row) => row.frontier);
+  frontier.sort((a, b) => preference === "capital"
+    ? a.capital - b.capital || b.reward - a.reward
+    : b.reward - a.reward || a.capital - b.capital);
+  get("report-frontier").replaceChildren(...frontier.map((row) => {
+    const final = row.phases.at(-1);
+    const name = final.trace.projects.map(projectLabel).join(" → ") || "Baseline";
+    return reportRow(name, [
+      formatNumber(row.capital), formatNumber(row.reward),
+      formatNumber(final.values[1]), final.trace.scenario,
+    ]);
   }));
+  get("tradeoffs-coverage").textContent = frontier.length + " frontier plans from "
+    + (tradeoffs.alternatives.length - 1) + " screened plans plus baseline · " + tradeoffs.rejected.length + " excluded";
+  get("rejected-alternatives").replaceChildren(...tradeoffs.rejected.map((row) =>
+    create("li", row.projects.map(projectLabel).join(" → ") + " · " + row.error)));
+}
+
+function drawPhaseTrace(phase) {
+  const trace = completed.report.phases[phase].trace;
+  const models = trace.models;
+  const fields = [
+    ["Scenario snapshot", trace.scenario + " (schema " + trace.scenarioVersion + ")"],
+    ["Ordered projects", trace.projects.map(projectLabel).join(" → ") || "Baseline"],
+    ["Seed", trace.seed],
+    ["Models", models.assignment + " v" + models.simulationVersion + " · demand v" + models.demandVersion
+      + " · accessibility v" + models.scoringVersion + " · optimization protocol v" + models.optimizerProtocol],
+    ["Revisions", [trace.networkRevision, trace.demandRevision, trace.serviceRevision, trace.catalogRevision].join(" · ")],
+    ["Source", [trace.source, trace.sourceVersion, trace.geography, trace.date, trace.license].join(" · ")],
+    ["Evidence basis", trace.basis + " · " + trace.sourceUncertainty],
+  ];
+  get("phase-trace").replaceChildren(...fields.flatMap(([label, value]) => [create("dt", label), create("dd", value)]));
+}
+
+function saveReport() {
+  const {id, plan, report} = completed;
+  const body = JSON.stringify({run: id, plan, ...report}, null, 2) + "\n";
+  const url = URL.createObjectURL(new Blob([body], {type: "application/json"}));
+  const download = create("a");
+  download.href = url;
+  download.download = "carfree-run-" + id + "-report-v" + report.version + ".json";
+  download.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function showPhase(query = activeComparison ?? values(get("comparison-form"))) {
@@ -433,7 +594,7 @@ async function showPhase(query = activeComparison ?? values(get("comparison-form
     status("results-status", phaseLabel(phases[phase], phase) + " displayed for run " + id + ".");
   } catch (error) {
     if (revision !== comparisonVersion) return;
-    status("results-status", error.message + (displayed ? " Maps still show the last successful comparison." : ""), true);
+    status("results-status", error.message + (displayed ? " Maps still show the last successful comparison." : " The stored report is available below."), true);
     stopPlayback();
     if (displayed) {
       get("phase").value = displayed.phase;
@@ -496,6 +657,9 @@ get("phase-back").addEventListener("click", () => stepTo(Number(get("phase").val
 get("phase-next").addEventListener("click", () => stepTo(Number(get("phase").value) + 1));
 get("phase-play").addEventListener("click", play);
 get("extent").addEventListener("change", drawComparison);
+get("report-metric").addEventListener("change", drawReportMetric);
+get("report-priority").addEventListener("change", drawTradeoffs);
+get("save-report").addEventListener("click", saveReport);
 
 api("areas").then((areas) => {
   get("area").replaceChildren(...areas.map(([id, name]) => option(id, name)));

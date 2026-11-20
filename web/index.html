@@ -129,13 +129,77 @@
             <article><h3>Baseline</h3><svg id="before-map" class="map network" role="img" aria-label="Baseline sampled accessibility map"></svg><ul id="before-data" class="destinations"></ul></article>
             <article><h3 id="after-title">Scenario</h3><svg id="after-map" class="map network" role="img" aria-label="Scenario sampled accessibility map"></svg><ul id="after-data" class="destinations"></ul></article>
           </div>
-          <div class="table-scroll">
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Phase outcome comparison">
             <table>
               <caption>Phase outcomes for the fixture’s fixed demand</caption>
-              <thead><tr><th scope="col">Metric</th><th scope="col">Baseline</th><th scope="col" id="phase-column">Scenario</th></tr></thead>
+              <thead><tr><th scope="col">Metric</th><th scope="col">Baseline</th><th scope="col" id="phase-column">Scenario</th><th scope="col">Change</th></tr></thead>
               <tbody id="phase-metrics"></tbody>
             </table>
           </div>
+          <p id="phase-denominators" class="caption"></p>
+          <section class="report-section" aria-labelledby="local-heading">
+            <h3 id="local-heading">Trip groups by origin</h3>
+            <p id="groups-caption" class="caption"></p>
+            <div id="groups-scroll" class="table-scroll" tabindex="0" role="region" aria-labelledby="local-heading">
+              <table>
+                <thead><tr><th scope="col">Cohort</th><th scope="col">Modeled trips</th><th scope="col">Assigned modes, baseline → phase</th><th scope="col">Unserved, baseline → phase</th><th scope="col">No car-free option in reference, baseline → phase</th></tr></thead>
+                <tbody id="report-groups"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <div id="results-report" hidden>
+          <section class="report-section" aria-labelledby="changes-heading">
+            <h3 id="changes-heading">Changes by construction phase</h3>
+            <label class="inline">Report metric <select id="report-metric"></select></label>
+            <p class="caption">Increments compare with the previous phase. Cumulative changes compare with the baseline.</p>
+            <div id="phase-chart" aria-hidden="true"></div>
+            <div class="table-scroll" tabindex="0" role="region" aria-labelledby="changes-heading">
+              <table>
+                <thead><tr><th scope="col">Phase</th><th scope="col">Increment</th><th scope="col">Cumulative</th></tr></thead>
+                <tbody id="phase-changes"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="report-section" aria-labelledby="sensitivity-heading">
+            <h3 id="sensitivity-heading">Sensitivity to assumptions</h3>
+            <p id="sensitivity-range" class="notice"></p>
+            <div class="table-scroll" tabindex="0" role="region" aria-labelledby="sensitivity-heading">
+              <table>
+                <thead><tr><th scope="col">Test</th><th scope="col">Assumptions</th><th scope="col">Final change from matched baseline</th></tr></thead>
+                <tbody id="sensitivity-cases"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="report-section" aria-labelledby="tradeoffs-heading">
+            <h3 id="tradeoffs-heading">Cost and access trade-offs</h3>
+            <p class="caption">The frontier compares the baseline and screened fixture plans. It shows results where no tested alternative has lower upper-bound capital or higher cumulative E14 access reward without worsening the other objective.</p>
+            <label class="inline">Priority
+              <select id="report-priority">
+                <option value="reward">Higher access reward first</option>
+                <option value="capital">Lower capital first</option>
+              </select>
+            </label>
+            <div class="table-scroll" tabindex="0" role="region" aria-labelledby="tradeoffs-heading">
+              <table>
+                <thead><tr><th scope="col">Ordered projects</th><th scope="col">Upper-bound capital (2026 USD)</th><th scope="col">Cumulative access reward (score)</th><th scope="col">Essential trips without a car-free option in reference (%)</th><th scope="col">Final scenario snapshot</th></tr></thead>
+                <tbody id="report-frontier"></tbody>
+              </table>
+            </div>
+            <details>
+              <summary id="tradeoffs-coverage"></summary>
+              <ul id="rejected-alternatives"></ul>
+            </details>
+          </section>
+          <section class="report-section" aria-labelledby="method-heading">
+            <h3 id="method-heading">Methodology and audit trail</h3>
+            <p id="report-calibration" class="notice"></p>
+            <p id="report-assumptions"></p>
+            <p id="report-uncertainty"></p>
+            <p id="report-limitations"></p>
+            <dl id="phase-trace" class="coverage"></dl>
+            <button id="save-report" type="button">Download full report (JSON)</button>
+          </section>
         </div>
       </div>
     </section>

@@ -1,4 +1,4 @@
-// E17-S01–S09 executable Chromium/WebKit acceptance against the Rust binary.
+// E17-S01–S09 and E18-S01–S07 executable Chromium/WebKit acceptance against the Rust binary.
 "use strict";
 const assert = require("node:assert/strict");
 const {spawn} = require("node:child_process");
@@ -110,6 +110,70 @@ async function run() {
     assert.equal(await page.locator("#result-legend li").count(), 4);
     assert.notEqual(await page.locator("#before-data").innerText(), await page.locator("#after-data").innerText());
 
+    // E18-S01/S02: numerical differences, denominators and cohort rows share the committed origin.
+    assert.match(await page.locator("#phase-metrics").innerText(), /Essential trips with no car-free option in reference.*66.667.*0.*-66.667 pp/);
+    assert.match(await page.locator("#phase-denominators").innerText(), /Assignment 6 → 6 · Reference 6 → 6/);
+    assert.deepEqual(await page.locator("#report-groups th").allTextContents(), ["adult", "mobility-aid"]);
+    assert.match(await page.locator("#report-groups").innerText(), /adult.*4.*Car 4 → Car 4.*4 → 0/);
+    await page.locator("#origin").selectOption("2");
+    await page.getByRole("button", {name: "Update comparison"}).press("Enter");
+    await page.locator("#groups-caption").filter({hasText: "has no modeled trip groups"}).waitFor();
+    assert.equal(await page.locator("#groups-scroll").isVisible(), false);
+    assert.notEqual(await before.getAttribute("viewBox"), extent);
+    await page.locator("#origin").selectOption("1");
+    await page.getByRole("button", {name: "Update comparison"}).press("Enter");
+    await page.locator("#report-groups th").first().waitFor();
+
+    // E18-S03/S04/S05/S07: trace, phase deltas, executed sensitivities and machine-readable export.
+    assert.match(await page.locator("#phase-trace").innerText(), /opening\/e14\/parking-walk\/e14\/direct-door/);
+    assert.match(await page.locator("#report-calibration").innerText(), /Uncalibrated synthetic fixture/);
+    assert.match(await page.locator("#report-uncertainty").innerText(), /Empirical uncertainty unavailable/);
+    assert.match(await page.locator("#sensitivity-range").innerText(), /-66.667 pp to 0 pp across 4 of 4 matched tests/);
+    assert.match(await page.locator("#phase-changes").innerText(), /Phase 2.*0 pp.*-66.667 pp/);
+    await page.locator("#report-metric").selectOption("6");
+    assert.match(await page.locator("#phase-changes").innerText(), /Phase 2.*\+40 2026 USD.*\+100 2026 USD/);
+    assert.equal(await page.locator("#phase-chart svg").count(), 1);
+    await page.locator("#report-metric").selectOption("1");
+
+    async function downloadReport() {
+      const [file] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", {name: "Download full report (JSON)"}).press("Enter"),
+      ]);
+      assert.equal(file.suggestedFilename(), "carfree-run-1-report-v1.json");
+      return JSON.parse(await readFile(await file.path(), "utf8"));
+    }
+
+    const report = await downloadReport();
+    assert.equal(report.version, 1);
+    assert.deepEqual(report.plan.projects, [0, 1]);
+    assert.deepEqual(report.phases.map((p) => p.trace.projects), [[], ["parking-walk"], ["parking-walk", "direct-door"]]);
+    for (const phase of report.phases) {
+      assert.equal(phase.trace.seed, 42);
+      assert.equal(phase.trace.models.simulationVersion, 1);
+    }
+    assert.equal(report.sensitivity.cases[0].phases[0].referenceEssentialTotal, 10);
+    assert.equal(report.sensitivity.cases[1].walkRestriction, true);
+    assert.notDeepEqual(report.sensitivity.cases[1].phases[0].groups, report.phases[0].groups);
+    assert.equal(report.sensitivity.cases[2].waitMultiplier, 2);
+    assert.match(report.methodology.limitations, /causal/);
+    assert.match(report.phases[0].trace.source, /repository-authored synthetic/);
+
+    // E18-S06: recompute dominance from all screened rows and prove priority is read-only.
+    const alternatives = report.tradeoffs.alternatives;
+    for (const row of alternatives) {
+      assert.equal(row.frontier, !alternatives.some((other) =>
+        other.capital <= row.capital && other.reward >= row.reward
+        && (other.capital < row.capital || other.reward > row.reward)));
+    }
+    assert.equal(report.tradeoffs.rejected.length, 2);
+    assert.match(await page.locator("#report-frontier th").first().innerText(), /approach/i);
+    assert.equal(await page.locator("#report-frontier th").count(), alternatives.filter((row) => row.frontier).length);
+    await page.locator("#report-priority").selectOption("capital");
+    assert.equal(await page.locator("#report-frontier th").first().innerText(), "Baseline");
+    assert.deepEqual(await downloadReport(), report);
+    await page.screenshot({path: path.join(output, engine + "-report.png"), fullPage: true});
+
     // S09: reversible snapshots and timed sequential playback.
     const final = await page.locator("#after-data").innerText();
     await page.getByRole("button", {name: "Previous"}).press("Enter");
@@ -136,7 +200,12 @@ async function run() {
     await page.getByRole("checkbox", {name: /Junction approach/}).press("Space");
     await page.getByRole("button", {name: "Preview and screen"}).press("Enter");
     await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
+    await page.route("**/api/e17/v1/comparison?id=2&*", (route) => route.abort(), {times: 1});
     await page.getByRole("button", {name: "Run scenario"}).press("Enter");
+    await page.locator("#results-status").filter({hasText: "The stored report is available below."}).waitFor();
+    assert.equal(await page.locator("#results-output").isVisible(), false);
+    assert.equal(await page.getByRole("button", {name: "Download full report (JSON)"}).isVisible(), true);
+    await page.getByRole("button", {name: "Update comparison"}).press("Enter");
     await page.locator("#results-status").filter({hasText: "Phase 2 · Junction approach displayed for run 2"}).waitFor();
     assert.notEqual(await page.locator("#after-data").innerText(), final);
     assert.equal(await after.locator("[data-phase-link='102']").count(), 1);
@@ -175,7 +244,7 @@ async function run() {
     assert.match(await page.locator("#submitted-plan").innerText(), /budgets 1 USD capital/);
     assert.match(await page.locator("#result-plan").innerText(), /Run 2/);
     assert.deepEqual(errors, []);
-    console.log(engine + " E17-S01–S09 acceptance passed");
+    console.log(engine + " E17-S01–S09 and E18-S01–S07 acceptance passed");
   } finally {
     try {
       await browser?.close();

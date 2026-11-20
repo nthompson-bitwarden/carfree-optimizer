@@ -88,3 +88,13 @@ th[scope=row] { font-weight: 560; }
 @media (max-width: 46rem) {
   .study-grid, .scenario-grid, .comparison-grid { grid-template-columns: minmax(0,1fr); }
 }
+.report-section { border-top: 1px solid var(--line); padding-top: 1rem; margin-top: 1.25rem; }
+.report-section .inline { flex-wrap: wrap; margin-bottom: .5rem; }
+.report-section details { margin-top: .6rem; }
+.report-section td { overflow-wrap: anywhere; }
+.report-section .coverage { margin-bottom: .8rem; }
+.report-chart { display: block; width: 100%; max-width: 42rem; margin-bottom: .6rem; border: 1px solid var(--line); border-radius: .4rem; }
+.report-chart text { font: 600 15px system-ui, sans-serif; fill: var(--ink); }
+.report-axis { stroke: #73897f; stroke-dasharray: 3 3; }
+.incremental { fill: #534397; }
+.cumulative { fill: var(--accent); }
