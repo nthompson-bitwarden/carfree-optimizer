@@ -84,10 +84,16 @@ reference evaluation and benchmarks provide no planning predictions.
 ## Spatial workbench
 
 ```sh
-cargo run --locked --offline -p mobility-api --bin spatial-workbench
+./dev.sh
 ```
 
-Open the printed loopback URL. Inspect the Census boundary and dataset gaps,
+The launcher builds the local stack and prints the loopback workbench,
+workspace API, and OpenAPI URLs. It saves workspace data under
+`.dev/workspace`. Run `./dev.sh 0` to use an available port and press
+Ctrl-C to stop. See [local development](docs/DEVELOPMENT.md#start-the-local-stack)
+for prerequisites and authenticated API usage.
+
+Open the workbench URL. Inspect the Census boundary and dataset gaps,
 then use the synthetic network to screen a corridor, run a scenario and compare
 accessibility over construction phases. Inspect modeled trip groups, sensitivity
 ranges and cost–access trade-offs, then download the audit report. See the

@@ -7,11 +7,17 @@ Run: python3 -m unittest discover -s tests/foundations -v
 import json
 import os
 from pathlib import Path
+import re
+import signal
+import stat
 import subprocess
 import sys
 import tempfile
+import time
 import tomllib
 import unittest
+from urllib.error import URLError
+from urllib.request import ProxyHandler, Request, build_opener
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -71,6 +77,60 @@ class FoundationsAcceptance(unittest.TestCase):
         result = run("/bin/bash", str(script), env=env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("rustup", (result.stdout + result.stderr).lower())
+
+    def test_e01_s02_given_other_working_directory_when_dev_runs_then_ui_and_api_are_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Path(directory) / "workspace data"
+            env = {**os.environ, "DEV_WORKSPACE_DIR": str(store)}
+            output = Path(directory) / "dev.out"
+            with output.open("w") as log, subprocess.Popen(
+                [str(ROOT / "dev.sh"), "0"], cwd=directory, env=env, stdout=log,
+            ) as launcher:
+                try:
+                    deadline = time.monotonic() + 180
+                    while time.monotonic() < deadline and launcher.poll() is None:
+                        match = re.search(r"^OpenAPI: (http://127\.0\.0\.1:\d+/)api/e19/v1/openapi\.json$",
+                                          output.read_text(), re.MULTILINE)
+                        if match:
+                            break
+                        time.sleep(0.1)
+                    else:
+                        self.fail(f"dev.sh did not start: {output.read_text()}")
+
+                    origin = match.group(1)
+                    api = origin + "api/e19/v1"
+                    self.assertIn(f"Workbench: {origin}", output.read_text())
+                    urls = {
+                        "Workbench API (areas)": origin + "api/e17/v1/areas",
+                        "Workspace API (cities)": api + "/cities",
+                        "OpenAPI": api + "/openapi.json",
+                    }
+                    http = build_opener(ProxyHandler({}))
+                    with http.open(origin, timeout=2) as response:
+                        self.assertIn("text/html", response.headers["Content-Type"])
+                    for label, url in urls.items():
+                        self.assertIn(f"{label}: {url}", output.read_text())
+                        with http.open(url, timeout=2) as response:
+                            self.assertTrue(json.load(response))
+                    owner = store / "owner"
+                    self.assertEqual(stat.S_IMODE(owner.stat().st_mode), 0o600)
+                    self.assertEqual(stat.S_IMODE(store.stat().st_mode), 0o700)
+                    request = Request(api + "/projects", headers={
+                        "Authorization": "Bearer " + owner.read_text().strip(),
+                    })
+                    with http.open(request, timeout=2) as response:
+                        self.assertEqual(response.status, 200)
+                finally:
+                    launcher.send_signal(signal.SIGINT)
+                    try:
+                        launcher.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        launcher.terminate()
+                        launcher.wait(timeout=5)
+
+            self.assertEqual(launcher.returncode, 130)
+            with self.assertRaises(URLError):
+                http.open(origin, timeout=2)
 
     def test_e01_s03_given_handoff_when_inspected_then_ownership_and_contract_fields_exist(self):
         text = (ROOT / "docs" / "AGENT-WORKFLOW.md").read_text()

@@ -20,6 +20,32 @@ tools fail with installation guidance. It does not install tools, download city
 data, start services, run training, or recursively invoke the foundation suite.
 Use rustup explicitly if another installed Cargo shadows its toolchain shims.
 
+## Start the local stack
+
+Run `./dev.sh` from the repository root after installing the prerequisites
+above and `curl`. The E01-S02 launcher builds the pinned Rust workbench
+from `Cargo.lock` and starts the browser UI and both local APIs in one
+process. The build can fetch locked dependencies on first run and serves
+the bundled fixtures. The workbench binds to `127.0.0.1:8047` by default.
+Use `./dev.sh 8080` to select a port or `./dev.sh 0` to let the OS choose.
+The launcher prints the URLs once the workspace API responds. Ctrl-C
+stops the server. Rerun after changing the embedded UI or Rust source.
+
+The workspace ledger and its private owner credential persist in
+`.dev/workspace` by default. Set `DEV_WORKSPACE_DIR` to use a different
+store. Relative paths resolve from the repository root. The browser
+workbench's interactive runs are ephemeral. Use the
+[workspace API](WORKSPACES.md#api-and-storage) for saved projects.
+To list saved projects using the default port and store, pass the
+authorization header via stdin:
+
+```sh
+printf 'Authorization: Bearer %s\n' "$(cat .dev/workspace/owner)" |
+  curl --disable --noproxy '*' -fsS -H @- http://127.0.0.1:8047/api/e19/v1/projects
+```
+
+## Validate changes
+
 Run the full local checks from the repository root:
 
 ```sh
