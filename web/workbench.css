@@ -26,10 +26,12 @@ a { color: var(--accent); }
 .brand-mark i { width: .24rem; border-radius: 1rem; height: 100%; background: #9cdfbf; }
 .brand-mark i:nth-child(2) { height: 68%; }
 nav a { color: #edf7f2; padding: .35rem; text-underline-offset: .2em; }
+nav a[aria-current] { text-decoration-thickness: .16em; }
 main { max-width: 77rem; margin: auto; padding: 1.6rem 1rem 3rem; }
 .intro { margin-bottom: 1.7rem; }
 .intro p { margin-top: .4rem; color: var(--muted); }
 h1, h2, h3, p { margin-top: 0; }
+h1[tabindex], h2[tabindex] { scroll-margin-top: 1rem; }
 h1 { margin-bottom: 0; font-size: clamp(2rem, 6vw, 3.5rem); letter-spacing: -.045em; line-height: 1.1; }
 h2 { font-size: clamp(1.35rem, 4vw, 1.85rem); letter-spacing: -.025em; margin: 0; }
 h3 { font-size: 1.12rem; margin-bottom: .4rem; }
@@ -46,7 +48,7 @@ button, input, select { font: inherit; color: inherit; max-width: 100%; }
 button, input:not([type=checkbox]), select { border: 1px solid #7d9a8c; padding: .4rem .55rem; min-height: 2.55rem; border-radius: .42rem; background: #fff; }
 button { cursor: pointer; font-weight: 650; }
 button:hover:not(:disabled) { box-shadow: inset 0 0 0 1px currentColor; }
-button:disabled { opacity: .55; cursor: default; }
+button:disabled, button[aria-disabled=true] { opacity: .68; cursor: default; }
 button.primary { background: var(--accent); color: white; border-color: var(--accent); }
 #study-form { display: grid; gap: .55rem; margin-bottom: .7rem; }
 #study-form button { justify-self: start; }
@@ -76,8 +78,21 @@ input[type=checkbox] { width: 1.05rem; height: 1.05rem; accent-color: var(--acce
 .none { background: #fff; }
 .inline { display: flex; align-items: center; gap: .4rem; }
 .inline select { display: inline-block; width: auto; margin: 0; }
-.job, .timeline { border-top: 1px solid var(--line); padding-top: .55rem; margin-top: .8rem; }
-.job p, [role=status] { margin: .35rem 0 .55rem; }
+.plan-step, .timeline { border-top: 1px solid var(--line); padding-top: .65rem; margin-top: .8rem; }
+[role=status] { margin: .35rem 0 .55rem; }
+.plan-step p:empty { display: none; }
+.choose-walkway #projects { background: #eaf2eb; }
+.options { padding: .22rem .55rem; border: 1px solid var(--line); border-radius: .45rem; }
+details { margin: .65rem 0; }
+summary { cursor: pointer; font-weight: 650; padding-block: .4rem; }
+#results-content > details, #results-report > details { border-top: 1px solid var(--line); }
+#results-content > details[open], #results-report > details[open] { padding-bottom: .6rem; }
+.result-summary { background: #eaf2eb; border-left: .25rem solid var(--accent); padding: .75rem 1rem; }
+.result-summary p { margin: 0 0 .25rem; }
+.result-summary p:last-child { margin-bottom: 0; }
+#reachability-summary { font-weight: 700; font-size: clamp(1.15rem, 3vw, 1.55rem); }
+#see-results { display: inline-block; padding: .4rem 0; font-weight: 650; }
+[hidden] { display: none !important; }
 .error { color: #8b311c; }
 .destinations { padding-left: 1.2rem; font-size: .9rem; }
 .table-scroll { overflow-x: auto; }
@@ -86,6 +101,8 @@ caption { text-align: left; font-weight: 670; margin-bottom: .4rem; }
 th, td { padding: .42rem .5rem; border-bottom: 1px solid var(--line); }
 th[scope=row] { font-weight: 560; }
 @media (max-width: 46rem) {
+  nav { gap: .2rem .45rem; font-size: .9rem; }
+  nav a { padding-inline: .2rem; }
   .study-grid, .scenario-grid, .comparison-grid { grid-template-columns: minmax(0,1fr); }
 }
 .report-section { border-top: 1px solid var(--line); padding-top: 1rem; margin-top: 1.25rem; }
