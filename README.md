@@ -93,10 +93,11 @@ workspace API, and OpenAPI URLs. It saves workspace data under
 Ctrl-C to stop. See [local development](docs/DEVELOPMENT.md#start-the-local-stack)
 for prerequisites and authenticated API usage.
 
-Open the workbench URL. Inspect the Census boundary and dataset gaps,
-then use the synthetic network to screen a corridor, run a scenario and compare
-accessibility over construction phases. Inspect modeled trip groups, sensitivity
-ranges and cost–access trade-offs, then download the audit report. See the
+Open the workbench URL and try the example scenario. Choose a walkway on the
+synthetic network, check the proposal, and run the comparison to see which
+destinations become reachable. Inspect modeled trip groups, sensitivity ranges
+and cost–access trade-offs, then download the audit report. Use **Explore a
+city** to inspect a Census boundary, dataset gaps and a dated snapshot. See the
 [demo and tests](web/README.md).
 
 ## Constrained reference optimization environment

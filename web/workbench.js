@@ -16,9 +16,12 @@ let selection = [];
 let previewVersion = 0;
 let studyVersion = 0;
 let studyProject = null;
+let areaRequest = null;
 let comparisonVersion = 0;
 let acceptedPlan = null;
+let checkingPlan = false;
 let submitting = false;
+let runAttempted = false;
 let pendingRun = null;
 let completed = null;
 let displayed = null;
@@ -67,6 +70,39 @@ function option(value, label) {
   const node = create("option", label);
   node.value = value;
   return node;
+}
+
+function focusHeading(id) {
+  const heading = get(id);
+  heading.scrollIntoView({block: "start"});
+  heading.focus({preventScroll: true});
+}
+
+function showView(focus = false) {
+  const anchor = location.hash;
+  const city = anchor === "#study";
+  get("study").hidden = !city;
+  get("example").hidden = city;
+  for (const link of document.querySelectorAll(".masthead nav a")) {
+    if (link.hash === (city ? "#study" : anchor === "#results" ? "#results" : "#scenario")) {
+      link.setAttribute("aria-current", "location");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  }
+  if (city && !areaRequest) {
+    areaRequest = api("areas").then((areas) => {
+      get("area").replaceChildren(...areas.map(([id, name]) => option(id, name)));
+      return study();
+    }).catch((error) => {
+      areaRequest = null;
+      status("study-status", error.message, true);
+    });
+  }
+  if (focus) {
+    const heading = city ? "study-heading" : anchor === "#results" ? "results-heading" : "scenario-heading";
+    focusHeading(heading);
+  }
 }
 
 function boundary(rings) {
@@ -158,7 +194,7 @@ function edgePath(from, to, bend) {
 }
 
 function labelFor(node) {
-  return node === 4 ? "4 · Clinic" : "Node " + node;
+  return node === 4 ? "Clinic" : "Node " + node;
 }
 
 function networkMap(element, links, overlay = null) {
@@ -215,7 +251,9 @@ function drawScenario() {
 
 function toggleProject(index, selected) {
   selection = selected ? [...selection, index] : selection.filter((item) => item !== index);
-  invalidatePreview();
+  invalidatePreview(selection.length === 0 ? "Choose a walkway to check modeled costs and constraints."
+    : selection.length > 2 ? "Deselect a walkway to keep at most two, then check again."
+    : "Check the selected walkways before running the comparison.");
   refreshSelection();
 }
 
@@ -225,6 +263,9 @@ function refreshSelection() {
     input.checked = order >= 0;
     input.nextSibling.textContent = projectLabel(fixture.projects[index][0]) + (order < 0 ? "" : " · Phase " + (order + 1));
   }
+  get("selection-summary").textContent = selection.length
+    ? "Selected in phase order · " + selection.map((index) => projectLabel(fixture.projects[index][0])).join(" → ")
+    : "No walkways selected.";
   drawScenario();
 }
 
@@ -232,12 +273,33 @@ function projectLabel(id) {
   return names[id] ?? id;
 }
 
-function invalidatePreview() {
+function updatePlanActions() {
+  const checkButton = get("check-plan");
+  const run = get("run");
+  checkButton.disabled = !selection.length || selection.length > 2;
+  if (checkingPlan) checkButton.setAttribute("aria-disabled", "true");
+  else checkButton.removeAttribute("aria-disabled");
+  run.disabled = !acceptedPlan || submitting || pendingRun !== null;
+  checkButton.classList.toggle("primary", !checkButton.disabled && !checkingPlan && !acceptedPlan);
+  run.classList.toggle("primary", !run.disabled);
+  get("plan-form").classList.toggle("choose-walkway", !selection.length);
+  if (!runAttempted) {
+    status("run-status", acceptedPlan ? "Ready to compare the baseline with your proposal."
+      : "Check the proposal to unlock the comparison.");
+  }
+}
+
+function invalidatePreview(message) {
   ++previewVersion;
   acceptedPlan = null;
-  get("run").disabled = true;
+  checkingPlan = false;
   get("costs").replaceChildren();
-  status("plan-status", "");
+  const {capital, annual} = values(get("plan-form"));
+  const budgetValue = (value) => value === "" ? "—" : reportNumber.format(Number(value));
+  get("budget-summary").textContent = "Proposal limits · " + budgetValue(capital) + " USD capital · "
+    + budgetValue(annual) + " USD/year (2026)";
+  if (message) status("plan-status", message);
+  updatePlanActions();
 }
 
 function range(bounds) {
@@ -248,14 +310,16 @@ function range(bounds) {
 
 async function previewPlan(event) {
   event.preventDefault();
-  invalidatePreview();
-  if (selection.length === 0 || selection.length > 2) {
-    status("plan-status", "Select one or two candidate links.", true);
+  if (checkingPlan) return;
+  if (selection.length < 1 || selection.length > 2) {
+    status("plan-status", "Keep one or two walkways selected, then check again.", true);
     return;
   }
+  invalidatePreview("Checking modeled costs, available space and access…");
+  checkingPlan = true;
+  updatePlanActions();
   const revision = previewVersion;
   const fields = {...values(get("plan-form")), projects: selection.join(",")};
-  status("plan-status", "Checking corridor, access and budgets…");
   try {
     const preview = await api("preview", fields);
     if (revision !== previewVersion) return;
@@ -267,22 +331,29 @@ async function previewPlan(event) {
     costs.replaceChildren(create("strong", "Modeled incremental costs · 2026 USD"), costList);
     costs.append(create("p", "Capital includes construction and disruption. These fixture lump sums do not vary with walkway width.", "caption"));
     if (preview.warning) {
-      status("plan-status", preview.warning, true);
+      status("plan-status", preview.warning + " Adjust the selected walkways, width or budgets, then check again.", true);
       return;
     }
-    costs.append(create("p", "Final portfolio · " + range(preview.total[0]) + " USD capital · " + range(preview.total[1]) + " USD/year including opening commitments.", "caption"));
-    status("plan-status", "The selected phases passed the fixture’s checks.");
+    costs.append(create("p", "Total with existing commitments · " + range(preview.total[0]) + " USD capital · " + range(preview.total[1]) + " USD/year.", "caption"));
+    status("plan-status", "The proposal passed the fixture’s checks. Run comparison to see what changes.");
     acceptedPlan = fields;
-    get("run").disabled = submitting || pendingRun !== null;
   } catch (error) {
-    if (revision === previewVersion) status("plan-status", error.message, true);
+    if (revision === previewVersion) status("plan-status", error.message + " Check the proposal again to retry.", true);
+  } finally {
+    if (revision === previewVersion) {
+      checkingPlan = false;
+      updatePlanActions();
+    }
   }
 }
 
 async function trackRun(submit) {
   if (submitting || (submit && (!acceptedPlan || pendingRun !== null))) return;
+  const trigger = submit ? get("run") : get("resume-run");
+  const startedFromControl = document.activeElement === trigger || document.activeElement === document.body;
   submitting = true;
-  get("run").disabled = true;
+  runAttempted = true;
+  updatePlanActions();
   get("resume-run").hidden = true;
   try {
     if (submit) {
@@ -293,16 +364,30 @@ async function trackRun(submit) {
       showSubmittedPlan({...fields, projects: fields.projects.split(",").map(Number)});
       status("run-status", "Queued · run " + id);
     }
-    await poll(pendingRun);
+    const finished = await poll(pendingRun);
     pendingRun = null;
+    if (finished && startedFromControl && !get("example").hidden
+        && [trigger, document.body].includes(document.activeElement)) {
+      focusHeading("results-heading");
+    }
   } catch (error) {
-    status("run-status", pendingRun === null ? error.message
-      : "Could not check run " + pendingRun + " · " + error.message, true);
-    if (error.status === 400) pendingRun = null;
+    if (pendingRun !== null && error.status === 400) {
+      status("run-status", "Run " + pendingRun + " is unavailable. " + error.message, true);
+      pendingRun = null;
+    } else {
+      status("run-status", pendingRun === null ? error.message
+        : "Could not check run " + pendingRun + " · " + error.message + ". Use Check run status to reconnect.", true);
+    }
   } finally {
     submitting = false;
-    get("run").disabled = !acceptedPlan || pendingRun !== null;
+    updatePlanActions();
     get("resume-run").hidden = pendingRun === null;
+    if (startedFromControl && !get("example").hidden
+        && [trigger, document.body].includes(document.activeElement)) {
+      const nextAction = [get("resume-run"), get("run"), get("check-plan"), get("projects").querySelector("input")]
+        .find((control) => !control.hidden && !control.disabled);
+      nextAction.focus();
+    }
   }
 }
 
@@ -323,11 +408,13 @@ async function poll(id) {
     if (result.status === "completed") {
       status("run-status", "Completed · run " + id);
       await showRun(id, plan, result.phases, result.report);
-      return;
+      get("see-results").hidden = false;
+      return true;
     }
     if (result.status === "failed") {
-      status("run-status", "Failed · run " + id + " · " + result.error, true);
-      return;
+      status("run-status", "Failed · run " + id + " · " + result.error + " Review the proposal and check it again.", true);
+      invalidatePreview("Check the proposal again before starting another run.");
+      return false;
     }
     status("run-status", (result.status === "queued" ? "Queued" : "Running") + " · run " + id);
     await new Promise((resolve) => setTimeout(resolve, 350));
@@ -353,6 +440,7 @@ async function showRun(id, plan, phases, report) {
   get("phase").replaceChildren(...phases.map((phase, i) => option(i, phaseLabel(phase, i))));
   get("phase").value = phases.length - 1;
   get("results-output").hidden = true;
+  get("results-demand").hidden = true;
   get("results-content").hidden = false;
   const form = get("comparison-form");
   if (activeComparison) {
@@ -377,6 +465,29 @@ function band([, median, reached, samples], metric) {
   return "slow";
 }
 
+function drawReachability(before, after, fields, phase) {
+  // A destination counts if at least one sampled departure gets there within the limit.
+  const reachableNodes = (scores) => new Set(scores.filter(([, , reached]) => reached > 0).map(([node]) => node));
+  const opening = reachableNodes(before);
+  const current = reachableNodes(after);
+  const delta = current.size - opening.size;
+  const change = delta === 0 ? "No change in the number of reachable destinations"
+    : Math.abs(delta) + (delta > 0 ? " more" : " fewer") + " reachable " + (Math.abs(delta) === 1 ? "destination" : "destinations");
+  get("reachability-summary").textContent = change + " (" + opening.size + " → " + current.size + ")";
+  const difference = (from, to) => [...to].filter((node) => !from.has(node)).map(labelFor).join(", ");
+  const gained = difference(opening, current);
+  const lost = difference(current, opening);
+  get("reachability-difference").textContent = [
+    gained && "Newly reachable · " + gained,
+    lost && "No longer reachable · " + lost,
+  ].filter(Boolean).join(" | ") || "The same destinations are reachable.";
+  get("comparison-assumptions").textContent = "From " + labelFor(Number(fields.origin)) + " · "
+    + (fields.modes === "walk" ? "Walking" : "Walking and bus") + " · "
+    + (fields.profile === "step-free" ? "Step-free / mobility aid" : "Standard walking") + " · " + phase
+    + " · " + fields.seconds + " s limit. Counts destinations reached by at least one sampled departure ("
+    + fields.start + "–" + fields.end + " s on the example clock).";
+}
+
 function drawComparison() {
   if (!displayed) return;
   const {phases, phase, before, after, fields, metric} = displayed;
@@ -399,10 +510,11 @@ function drawComparison() {
     get(side + "-data").replaceChildren(...destinations);
   }
   const current = phases[phase];
-  get("comparison-caption").textContent = (metric === "time" ? "Point isochrones at network nodes. " : "Share of departures reachable within the selected limit. ")
-    + labelFor(origin) + " · " + fields.modes.replace("-", " + ") + " · " + fields.profile + " · departures " + fields.start + "–" + fields.end + " s · limit " + fields.seconds + " s";
-  get("after-title").textContent = phaseLabel(current, phase);
-  get("phase-column").textContent = phaseLabel(current, phase);
+  const title = phaseLabel(current, phase);
+  get("comparison-caption").textContent = metric === "time" ? "Colors show median travel time among reachable departures."
+    : "Share of departures reachable within the selected limit.";
+  get("after-title").textContent = title;
+  get("phase-column").textContent = title;
   drawMetrics(phases[0], current, phase);
   drawOriginGroups(origin, phase);
   drawPhaseTrace(phase);
@@ -589,8 +701,10 @@ async function showPhase(query = activeComparison ?? values(get("comparison-form
     if (revision !== comparisonVersion) return;
     activeComparison = query;
     displayed = {...data, phases, phase, fields, metric};
-    drawComparison();
     get("results-output").hidden = false;
+    get("results-demand").hidden = false;
+    drawReachability(data.before, data.after, fields, phaseLabel(phases[phase], phase));
+    drawComparison();
     status("results-status", phaseLabel(phases[phase], phase) + " displayed for run " + id + ".");
   } catch (error) {
     if (revision !== comparisonVersion) return;
@@ -643,8 +757,15 @@ get("study-form").addEventListener("change", () => study());
 get("save-study").addEventListener("click", saveStudy);
 get("plan-form").addEventListener("submit", previewPlan);
 get("plan-form").addEventListener("input", (event) => {
-  if (event.target.type !== "checkbox") invalidatePreview();
+  if (event.target.type !== "checkbox") {
+    invalidatePreview(selection.length ? "Settings changed. Check the proposal again before running."
+      : "Choose a walkway to check modeled costs and constraints.");
+  }
 });
+get("plan-form").addEventListener("invalid", () => {
+  get("proposal-settings").open = true;
+  status("plan-status", "Correct the width or budget shown, then check again.", true);
+}, true);
 get("run").addEventListener("click", () => trackRun(true));
 get("resume-run").addEventListener("click", () => trackRun(false));
 get("comparison-form").addEventListener("submit", (event) => {
@@ -661,10 +782,14 @@ get("report-metric").addEventListener("change", drawReportMetric);
 get("report-priority").addEventListener("change", drawTradeoffs);
 get("save-report").addEventListener("click", saveReport);
 
-api("areas").then((areas) => {
-  get("area").replaceChildren(...areas.map(([id, name]) => option(id, name)));
-  study();
-}).catch((error) => status("study-status", error.message, true));
+document.querySelector(".skip").addEventListener("click", (event) => {
+  if (get("study").hidden) return;
+  event.preventDefault();
+  get("workbench").focus();
+});
+window.addEventListener("hashchange", () => showView(location.hash !== "#workbench"));
+showView(Boolean(location.hash && location.hash !== "#workbench"));
+invalidatePreview();
 
 api("network").then((data) => {
   fixture = data;

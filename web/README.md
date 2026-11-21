@@ -13,22 +13,26 @@ Pass another port after `--`, or use `0` for an available port.
 
 ## Reviewable demo
 
-1. Choose Portland, ME, Portland, OR, or Portland–Vancouver–Hillsboro. Inspect
-   the Census boundary and required dataset statuses. Initialize and download
-   the E02 project snapshot if you want to save it. The same TSV works with
-   `study-area preview`. Transportation model initialization requires the
-   missing datasets listed in the study-area panel.
-2. In the synthetic network, toggle Road and Rail to compare modeled links and
-   an absent mode. Select Parking approach on the map or with its checkbox,
-   then Clinic approach. The order of selection sets the construction phases.
-3. Set the walkway width to 8,000 mm and choose **Preview and screen**.
-   Review the modeled costs and right-of-way warning. Change the width to
-   1,900 mm and preview again with the default budgets. Select **Run scenario**.
-4. Compare the completed run using walking and bus, a step-free or standard
-   profile, a departure window, and a travel-time limit. Switch between time
-   bands and departure reachability. Zoom around the origin to move both maps
-   together. Previous, Next, the phase selector, and Play operate on the same
-   stored series. The baseline provides phase zero.
+1. Open **Try an example scenario** and choose Parking approach on the map or
+   with its checkbox. Add Clinic approach to see two construction phases.
+   Selection order determines phase order.
+2. Open **Edit width and budgets**. Set the capital budget to 1 USD and choose
+   **Check proposal**. The check explains the budget rejection and keeps the
+   selected walkways. Restore the 200 USD budget, check again, and choose
+   **Run comparison**. Setting the width to 8,000 mm demonstrates the
+   right-of-way warning. The default width is 1,900 mm.
+3. **What changed?** counts destinations that at least one sampled departure
+   reaches within the time limit. Compare the paired maps and destination lists.
+   Open **Comparison filters and map view** to change modes, origin, mobility
+   profile or query times. Choose a map metric or zoom both maps around the
+   origin. Previous, Next, the phase selector and Play use the same stored
+   series. The baseline provides phase zero.
+4. Open **Map layers, legend and data source** to compare modeled road links
+   with the absent rail layer. Use **Explore a city** to inspect the Census
+   boundary and required dataset statuses for one of the three pilot areas.
+   Initialize and download the E02 project snapshot to save it. The TSV works
+   with `study-area preview`. Transportation model initialization requires the
+   missing datasets listed in the city view.
 
 Road, bicycle, walking, bus and rail toggles filter displayed network lines.
 Access unknown on a supplied link uses a dotted line and a legend count.
@@ -108,7 +112,10 @@ transitions and capacity, same-origin authorization, matched queries, and
 reversible phases. The browser test covers E17-S01–S09 against the actual Rust
 application. It exercises pointer and keyboard controls, downloadable project
 data, layer visibility, focus, scenario submission, both maps, snapshots,
-playback and narrow-viewport page overflow.
+playback and narrow-viewport page overflow. E17-S08 also covers the independent
+city entry, proposal rejection and correction, edits after a passed check,
+recovery of an interrupted run, and reachability gains and zero change from the
+real endpoint. A substituted comparison response verifies the loss wording.
 
 ```sh
 cargo test --locked --offline -p mobility-api --bin spatial-workbench
@@ -122,6 +129,30 @@ The browser test requires Node.js and Playwright with the selected browser
 installed. Use `E17_PLAYWRIGHT_MODULE` to point to an existing Playwright
 installation. The default screenshots directory is `.codex/run/e17`, override
 with `E17_SCREENSHOTS`. Serve the app directly for manual review.
+
+### First-visit usability review (E17-S08)
+
+The scores use the approved plan’s 1–10 rubric. A score of 1 means the
+interface obstructs the task, 5 means the task is feasible with avoidable
+interpretation, and 10 means the action and its consequence are clear
+throughout. The revised scores are heuristic judgments from browser
+walkthroughs and matched 1280 × 900 and 375 × 780 screenshots.
+
+| Concept | Before | After | Observed behavior |
+| --- | ---: | ---: | --- |
+| First-visit orientation | 3 | 9 | The opening shows the walkway choices and the example works without loading the city catalogue. Explore a city opens the Census view independently. |
+| Match with user expectations | 4 | 8 | The opening and result heading both identify the synthetic network. The separate city view shows the actual Census boundary and its dataset gaps. The example still has generic node labels. |
+| Clarity of the next action | 4 | 9 | Selection enables and highlights Check proposal. A successful check prioritizes Run comparison. An edit makes the check the primary action again. |
+| Cognitive load | 4 | 8 | The default walkthrough leaves width, budgets and layer controls collapsed. Results appear before filters and detailed tables. On mobile, inspecting the map from the proposal and comparing the two result maps require scrolling. |
+| Feedback and recovery | 6 | 8 | A budget rejection keeps the selected links and offers a correction. The interrupted status request can reconnect to the same submitted run. A failed initial submission can still expose transport-level wording. |
+| Understanding results | 5 | 9 | The default one-walkway run shows 1 → 3 reachable destinations and names the two gains. Selecting the baseline phase shows zero change. The summary shows the origin, profile, phase, sampled departure window and time limit. |
+| Keyboard and mobile usability | 7 | 8 | Both engines complete the form by keyboard, land focus on the result heading and show the summary in view. The page fits the 375 px viewport. WebKit’s default keyboard preference requires Option+Tab to reach all controls; detailed tables scroll within their containers. |
+
+The walkthrough verifies behavior, keyboard focus and the live status
+semantics. First-time-user comprehension and spoken screen-reader output
+still need direct observation.
+
+### Workbench performance
 
 Each preview or run evaluates at most two projects using the unchanged E14
 simulation and screening algorithms. A comparison issues
@@ -139,8 +170,9 @@ routing workloads require separate benchmarks.
 
 ## Interpretation and reports
 
-After a run completes, use **Origin** and **Update comparison** to inspect
-the matched routing maps and trip-group table together. Only the abstract
+After a run completes, open **Comparison filters and map view** and use
+**Origin** and **Update comparison** to update the matched routing maps. Open
+**Phase outcomes and modeled trip groups** to inspect the related table. Only the abstract
 origin at node 1 has modeled trips. Its two primary cohorts are adult and
 mobility-aid travelers. The table describes weighted trip legs by home zone.
 Map filters for travel mode, mobility profile and time apply to the E07

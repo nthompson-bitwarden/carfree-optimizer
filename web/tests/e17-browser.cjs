@@ -25,10 +25,18 @@ async function run() {
     const page = await browser.newPage({viewport: {width: 1280, height: 900}, reducedMotion: "reduce"});
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    const requests = [];
+    page.on("request", (request) => requests.push(new URL(request.url()).pathname));
     await page.goto(base);
 
-    // S01/S08: real Census boundary, visible gaps, keyboard initialization, saved E02 file.
-    await page.locator("#boundary path").waitFor();
+    // S08: the example is ready on the first visit, without city requests or setup.
+    await page.getByRole("checkbox", {name: "Parking approach", exact: true}).waitFor();
+    assert.equal(await page.getByRole("heading", {name: "Try an example scenario"}).isVisible(), true);
+    assert.equal(await page.locator("#study").isVisible(), false);
+    assert.equal(requests.includes("/api/e17/v1/areas"), false);
+    assert.equal(await page.getByRole("button", {name: "Check proposal"}).isDisabled(), true);
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).isDisabled(), true);
+    await page.screenshot({path: path.join(output, engine + "-first-desktop.png")});
     const skip = page.getByRole("link", {name: "Skip to workbench"});
     if (engine === "webkit") {
       // Default WebKit keyboard settings tab through form controls only.
@@ -39,6 +47,17 @@ async function run() {
     assert.equal(await page.evaluate(() => document.activeElement.textContent), "Skip to workbench");
     await page.keyboard.press("Enter");
     assert.equal(new URL(page.url()).hash, "#workbench");
+
+    // S01/S08: independent Census view, keyboard entry and saved E02 file.
+    await page.getByRole("link", {name: "Explore a city"}).press("Enter");
+    await page.locator("#boundary path").waitFor();
+    assert.equal(new URL(page.url()).hash, "#study");
+    assert.equal(await page.locator("#scenario").isVisible(), false);
+    assert.equal(await page.evaluate(() => document.activeElement.id), "study-heading");
+    assert.equal(requests.includes("/api/e17/v1/runs"), false);
+    await skip.press("Enter");
+    assert.equal(new URL(page.url()).hash, "#study");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "workbench");
     assert.deepEqual(await page.locator("#area option").allTextContents(), [
       "Portland-Vancouver-Hillsboro, OR-WA Metro Area", "Portland city, ME", "Portland city, OR",
     ]);
@@ -54,6 +73,10 @@ async function run() {
     const tsv = await readFile(await download.path(), "utf8");
     assert.match(tsv, /^carfree-study-project-v1\n/);
     assert.match(tsv, /missing\tRoads,Transit,Population,Demand/);
+
+    await page.getByRole("link", {name: "Example scenario", exact: true}).press("Enter");
+    await page.getByRole("heading", {name: "Try an example scenario"}).waitFor();
+    await page.getByText("Map layers, legend and data source", {exact: true}).press("Enter");
 
     // S02: actual layer visibility and an explicit absent-versus-unknown legend.
     await page.locator("#layer-legend").filter({hasText: "Rail · absent in fixture"}).waitFor();
@@ -74,28 +97,67 @@ async function run() {
     const parking = page.getByRole("checkbox", {name: /Parking approach/});
     assert.equal(await parking.isChecked(), true);
     await page.getByRole("checkbox", {name: /Clinic approach/}).press("Space");
+    assert.match(await page.locator("#selection-summary").innerText(), /Parking approach → Clinic approach/);
+    assert.equal(await page.locator("#check-plan").evaluate((button) => button.classList.contains("primary")), true);
+    await page.getByText("Edit width and budgets", {exact: true}).press("Enter");
+    await page.getByLabel("Capital budget (2026 USD)").fill("1");
+    assert.match(await page.locator("#budget-summary").innerText(), /1 USD capital/);
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
+    await page.locator("#plan-status").filter({hasText: /budget.*then check again/i}).waitFor();
+    assert.equal(await parking.isChecked(), true);
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).isDisabled(), true);
+    await page.getByLabel("Capital budget (2026 USD)").fill("200");
     await page.getByLabel("Walkway width (mm)").fill("8000");
-    await page.getByRole("button", {name: "Preview and screen"}).press("Enter");
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
     await page.locator("#plan-status").filter({hasText: "right-of-way"}).waitFor();
-    assert.equal(await page.getByRole("button", {name: "Run scenario"}).isDisabled(), true);
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).isDisabled(), true);
     assert.match(await page.locator("#costs").innerText(), /Modeled incremental costs/);
     await page.getByLabel("Walkway width (mm)").fill("1900");
-    await page.getByRole("button", {name: "Preview and screen"}).press("Enter");
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
     await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
 
-    // S05: browser submits an actual job. Queue/running/failed are deterministic Rust tests.
-    await page.getByRole("button", {name: "Run scenario"}).press("Enter");
+    // An edit invalidates a passed check without losing the selected walkways.
+    await page.getByLabel("Walkway width (mm)").fill("2100");
+    await page.locator("#plan-status").filter({hasText: "Settings changed. Check the proposal again"}).waitFor();
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).isDisabled(), true);
+    assert.equal(await parking.isChecked(), true);
+    await page.getByLabel("Walkway width (mm)").fill("1900");
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
+    await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).evaluate((button) => button.classList.contains("primary")), true);
+
+    // S05: interrupt a real status request, then resume the same successful job.
+    await page.route("**/api/e17/v1/run?id=1", (route) => route.abort(), {times: 1});
+    await page.getByRole("button", {name: "Run comparison"}).press("Enter");
+    await page.locator("#run-status").filter({hasText: /Could not check run 1.*reconnect/}).waitFor();
+    await page.locator("#resume-run:focus").waitFor();
+    assert.equal(await page.getByRole("button", {name: "Run comparison"}).isDisabled(), true);
+    await page.getByRole("button", {name: "Check run status"}).press("Enter");
     await page.locator("#run-status").filter({hasText: "Completed · run"}).waitFor();
     assert.match(await page.locator("#submitted-plan").innerText(), /Parking approach → Clinic approach · 1900 mm/);
+    await page.locator("#results-output").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "results-heading");
+    const summaryBox = await page.locator("#reachability-summary").boundingBox();
+    assert.ok(summaryBox.y >= 0 && summaryBox.y + summaryBox.height < 900);
+    assert.equal(await page.locator("#reachability-summary").isVisible(), true);
+    assert.match(await page.locator(".result-summary").ariaSnapshot(), /status:.*reachable/s);
+    assert.match(await page.locator("#comparison-assumptions").innerText(), /From Node 1.*Step-free.*Phase 2.*30 s limit.*at least one/);
+    assert.equal(await page.locator("#comparison-settings").evaluate((details) => details.open), false);
+    await page.screenshot({path: path.join(output, engine + "-first-results.png")});
     await page.getByLabel("Walkway width (mm)").fill("2100");
     assert.match(await page.locator("#submitted-plan").innerText(), /1900 mm/);
     await page.getByLabel("Walkway width (mm)").fill("1900");
-    await page.getByRole("button", {name: "Preview and screen"}).press("Enter");
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
     await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
 
     // S06/S07: real matched map updates and a shared extent and legend.
     await page.locator("#results-content").waitFor();
-    await page.getByLabel("Mode set").selectOption("walk-bus");
+    await page.getByText("Comparison filters and map view", {exact: true}).press("Enter");
+    await page.getByLabel("Mobility profile").selectOption("standard");
+    await page.getByRole("button", {name: "Update comparison"}).press("Enter");
+    await page.locator("#comparison-assumptions").filter({hasText: "Standard walking"}).waitFor();
+    await page.getByLabel("Mobility profile").selectOption("step-free");
+    await page.getByLabel("Travel modes").selectOption("walk-bus");
     await page.getByLabel("Map metric").selectOption("coverage");
     await page.getByLabel("Last departure (s)").fill("14");
     await page.getByLabel("Travel-time limit (s)").fill("16");
@@ -110,6 +172,10 @@ async function run() {
     assert.equal(await page.locator("#result-legend li").count(), 4);
     assert.notEqual(await page.locator("#before-data").innerText(), await page.locator("#after-data").innerText());
 
+    assert.match(await page.locator("#reachability-summary").innerText(), /more reachable destination/);
+    assert.match(await page.locator("#reachability-difference").innerText(), /Newly reachable/);
+    await page.getByText("Phase outcomes and modeled trip groups", {exact: true}).press("Enter");
+
     // E18-S01/S02: numerical differences, denominators and cohort rows share the committed origin.
     assert.match(await page.locator("#phase-metrics").innerText(), /Essential trips with no car-free option in reference.*66.667.*0.*-66.667 pp/);
     assert.match(await page.locator("#phase-denominators").innerText(), /Assignment 6 → 6 · Reference 6 → 6/);
@@ -123,6 +189,9 @@ async function run() {
     await page.locator("#origin").selectOption("1");
     await page.getByRole("button", {name: "Update comparison"}).press("Enter");
     await page.locator("#report-groups th").first().waitFor();
+
+    await page.getByText("Methodology and audit trail", {exact: true}).press("Enter");
+    await page.getByText("Phase changes, sensitivity and cost trade-offs", {exact: true}).press("Enter");
 
     // E18-S03/S04/S05/S07: trace, phase deltas, executed sensitivities and machine-readable export.
     assert.match(await page.locator("#phase-trace").innerText(), /opening\/e14\/parking-walk\/e14\/direct-door/);
@@ -181,6 +250,8 @@ async function run() {
     await page.getByRole("button", {name: "Previous"}).press("Enter");
     await page.locator("#after-title").filter({hasText: "Baseline"}).waitFor();
     assert.equal(await page.locator("#before-data").innerText(), await page.locator("#after-data").innerText());
+    assert.match(await page.locator("#reachability-summary").innerText(), /No change in the number of reachable destinations/);
+    assert.equal(await page.locator("#reachability-difference").innerText(), "The same destinations are reachable.");
     await page.getByRole("button", {name: "Play", exact: true}).press("Enter");
     await page.getByRole("button", {name: "Pause", exact: true}).waitFor();
     await page.locator("#after-title").filter({hasText: "Phase 2"}).waitFor();
@@ -198,10 +269,10 @@ async function run() {
     await page.locator("#results-status").filter({hasText: "Phase 1 · Parking approach displayed for run 1"}).waitFor();
     await page.getByRole("checkbox", {name: /Clinic approach/}).press("Space");
     await page.getByRole("checkbox", {name: /Junction approach/}).press("Space");
-    await page.getByRole("button", {name: "Preview and screen"}).press("Enter");
+    await page.getByRole("button", {name: "Check proposal"}).press("Enter");
     await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
     await page.route("**/api/e17/v1/comparison?id=2&*", (route) => route.abort(), {times: 1});
-    await page.getByRole("button", {name: "Run scenario"}).press("Enter");
+    await page.getByRole("button", {name: "Run comparison"}).press("Enter");
     await page.locator("#results-status").filter({hasText: "The stored report is available below."}).waitFor();
     assert.equal(await page.locator("#results-output").isVisible(), false);
     assert.equal(await page.getByRole("button", {name: "Download full report (JSON)"}).isVisible(), true);
@@ -237,12 +308,56 @@ async function run() {
       return route.continue({url: url.toString().replaceAll("%2C", ",")});
     }, {times: 1});
     await page.route("**/api/e17/v1/run?id=3", (route) => route.abort(), {times: 1});
-    await page.getByRole("button", {name: "Run scenario"}).press("Enter");
+    await page.getByRole("button", {name: "Run comparison"}).press("Enter");
     await page.locator("#run-status").filter({hasText: "Could not check run 3"}).waitFor();
     await page.getByRole("button", {name: "Check run status"}).press("Enter");
     await page.locator("#run-status").filter({hasText: /Failed · run 3.*budget/}).waitFor();
+    await page.locator("#check-plan:focus").waitFor();
     assert.match(await page.locator("#submitted-plan").innerText(), /budgets 1 USD capital/);
     assert.match(await page.locator("#result-plan").innerText(), /Run 2/);
+    await page.keyboard.press("Enter");
+    await page.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
+    // Fresh mobile first visit by keyboard. Option+Tab in WebKit includes
+    // controls outside its default keyboard navigation preference.
+    const mobile = await browser.newPage({viewport: {width: 375, height: 780}, reducedMotion: "reduce"});
+    mobile.on("pageerror", (error) => errors.push(error.message));
+    await mobile.goto(base);
+    const mobileParking = mobile.getByRole("checkbox", {name: /Parking approach/});
+    await mobileParking.waitFor();
+    assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth), 375);
+    await mobile.screenshot({path: path.join(output, engine + "-first-mobile.png")});
+    await mobileParking.focus();
+    await mobile.keyboard.press("Space");
+    assert.equal(await mobileParking.isChecked(), true);
+    const tabKey = engine === "webkit" ? "Alt+Tab" : "Tab";
+    for (let tab = 0; tab < 5 && await mobile.evaluate(() => document.activeElement.id) !== "check-plan"; tab++) {
+      await mobile.keyboard.press(tabKey);
+    }
+    assert.equal(await mobile.evaluate(() => document.activeElement.id), "check-plan");
+    await mobile.keyboard.press("Enter");
+    await mobile.locator("#plan-status").filter({hasText: "passed the fixture"}).waitFor();
+    assert.equal(await mobile.evaluate(() => document.activeElement.id), "check-plan");
+    await mobile.keyboard.press(tabKey);
+    assert.equal(await mobile.evaluate(() => document.activeElement.id), "run");
+    await mobile.keyboard.press("Enter");
+    await mobile.locator("#results-output").waitFor();
+    assert.equal(await mobile.evaluate(() => document.activeElement.id), "results-heading");
+    assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth), 375);
+    assert.match(await mobile.locator("#reachability-summary").innerText(), /\d+ → \d+/);
+    await mobile.screenshot({path: path.join(output, engine + "-first-mobile-results.png")});
+
+    // Stub a loss at the comparison boundary. The built-in walkway example
+    // adds links and supplies gains and equal counts for real endpoint checks.
+    await mobile.route("**/api/e17/v1/comparison?id=4&*", async (route) => {
+      const response = await route.fetch();
+      const data = await response.json();
+      data.after = data.before.map(([node, , , sampled]) => [node, null, 0, sampled]);
+      await route.fulfill({response, json: data});
+    }, {times: 1});
+    await mobile.getByText("Comparison filters and map view", {exact: true}).press("Enter");
+    await mobile.getByRole("button", {name: "Update comparison"}).press("Enter");
+    await mobile.locator("#reachability-summary").filter({hasText: "1 fewer reachable destination (1 → 0)"}).waitFor();
+    assert.match(await mobile.locator("#reachability-difference").innerText(), /No longer reachable/);
     assert.deepEqual(errors, []);
     console.log(engine + " E17-S01–S09 and E18-S01–S07 acceptance passed");
   } finally {
